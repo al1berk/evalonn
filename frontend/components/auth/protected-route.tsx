@@ -3,29 +3,30 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store'
-import { authService } from '@/services/auth.service'
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const router = useRouter()
-    const { isAuthenticated } = useAuthStore()
+    const { isAuthenticated, loading } = useAuthStore()
 
     useEffect(() => {
-        // Check if user is authenticated
-        if (!isAuthenticated && typeof window !== 'undefined') {
-            const hasToken = authService.isAuthenticated()
-            if (!hasToken) {
-                router.push('/login')
-            }
+        // Redirect to login if not authenticated and not loading
+        if (!loading && !isAuthenticated) {
+            router.push('/login')
         }
-    }, [isAuthenticated, router])
+    }, [isAuthenticated, loading, router])
 
-    // Show loading or nothing while checking auth
-    if (!isAuthenticated) {
+    // Show loading while checking auth
+    if (loading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-[#131722]">
                 <div className="text-slate-400">Loading...</div>
             </div>
         )
+    }
+
+    // Only render children if authenticated
+    if (!isAuthenticated) {
+        return null
     }
 
     return <>{children}</>

@@ -1,10 +1,13 @@
 import { User } from '@/types'
-import { USE_MOCK_DATA } from '@/lib/constants'
-import { apiClient } from '@/lib/api-client'
-
-// Mock users (localStorage'da saklanacak)
-const MOCK_USERS_KEY = 'evalon_mock_users'
-const AUTH_TOKEN_KEY = 'evalon_auth_token'
+import {
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    signOut,
+    signInWithPopup,
+    updateProfile,
+    User as FirebaseUser,
+} from 'firebase/auth'
+import { auth, googleProvider, appleProvider } from '@/lib/firebase'
 
 interface LoginCredentials {
     email: string
@@ -19,123 +22,139 @@ interface SignupData {
 
 interface AuthResponse {
     user: User
-    token: string
 }
 
-// Demo kullanıcı
-const DEFAULT_USER: User = {
-    id: '1',
-    email: 'demo@evalon.com',
-    name: 'Demo User',
-    createdAt: new Date().toISOString(),
+// Convert Firebase User to App User
+const mapFirebaseUserToAppUser = (firebaseUser: FirebaseUser): User => {
+    return {
+        id: firebaseUser.uid,
+        email: firebaseUser.email || '',
+        name: firebaseUser.displayName || undefined,
+        createdAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
+    }
 }
+
+// Firebase error messages to user-friendly messages
+const getErrorMessage = (error: any): string => {
+    const errorCode = error.code
+    switch (errorCode) {
+        case 'auth/email-already-in-use':
+            return 'Email already exists'
+        case 'auth/invalid-email':
+            return 'Invalid email address'
+        case 'auth/user-not-found':
+            return 'Invalid email or password'
+        case 'auth/wrong-password':
+            return 'Invalid email or password'
+        case 'auth/weak-password':
+            return 'Password must be at least 6 characters'
+        case 'auth/too-many-requests':
+            return 'Too many attempts. Please try again later'
+        case 'auth/popup-closed-by-user':
+            return 'Sign-in popup was closed'
+        case 'auth/cancelled-popup-request':
+            return 'Sign-in cancelled'
+        case 'auth/network-request-failed':
+            return 'Network error. Please check your connection'
+        default:
+            return error.message || 'An error occurred'
+    }
+}
+
 
 export const authService = {
     /**
      * Login with email and password
      */
     async login(credentials: LoginCredentials): Promise<AuthResponse> {
-        if (USE_MOCK_DATA) {
-            // Simulate API delay
-            await new Promise((resolve) => setTimeout(resolve, 800))
-
-            // Demo account
-            if (
-                credentials.email === 'demo@evalon.com' &&
-                credentials.password === 'demo1234'
-            ) {
-                const token = 'mock_token_' + Date.now()
-                localStorage.setItem(AUTH_TOKEN_KEY, token)
-                return { user: DEFAULT_USER, token }
-            }
-
-            // Check mock users in localStorage
-            const users = this.getMockUsers()
-            const user = users.find(
-                (u) =>
-                    u.email === credentials.email && u.password === credentials.password
+        try {
+            const userCredential = await signInWithEmailAndPassword(
+                auth,
+                credentials.email,
+                credentials.password
             )
-
-            if (user) {
-                const token = 'mock_token_' + Date.now()
-                localStorage.setItem(AUTH_TOKEN_KEY, token)
-                const { password, ...userWithoutPassword } = user
-                return { user: userWithoutPassword, token }
-            }
-
-            throw new Error('Invalid email or password')
+            return { user: mapFirebaseUserToAppUser(userCredential.user) }
+        } catch (error: any) {
+            throw new Error(getErrorMessage(error))
         }
-
-        // Real API call
-        const response = await apiClient.post<AuthResponse>('/auth/login', credentials)
-        localStorage.setItem(AUTH_TOKEN_KEY, response.data.token)
-        return response.data
     },
 
     /**
      * Signup with email, password, and name
      */
     async signup(data: SignupData): Promise<AuthResponse> {
-        if (USE_MOCK_DATA) {
-            await new Promise((resolve) => setTimeout(resolve, 800))
+        try {
+            // Create user account
+            const userCredential = await createUserWithEmailAndPassword(
+                auth,
+                data.email,
+                data.password
+            )
 
-            // Check if email exists
-            const users = this.getMockUsers()
-            if (users.some((u) => u.email === data.email)) {
-                throw new Error('Email already exists')
+            // Update profile with name
+            await updateProfile(userCredential.user, {
+                displayName: data.name,
+            })
+
+            // Return updated user
+            return {
+                user: {
+                    ...mapFirebaseUserToAppUser(userCredential.user),
+                    name: data.name,
+                },
             }
-
-            // Create new user
-            const newUser = {
-                id: Date.now().toString(),
-                email: data.email,
-                password: data.password,
-                name: data.name,
-                createdAt: new Date().toISOString(),
-            }
-
-            users.push(newUser)
-            localStorage.setItem(MOCK_USERS_KEY, JSON.stringify(users))
-
-            const token = 'mock_token_' + Date.now()
-            localStorage.setItem(AUTH_TOKEN_KEY, token)
-
-            const { password, ...userWithoutPassword } = newUser
-            return { user: userWithoutPassword, token }
+        } catch (error: any) {
+            throw new Error(getErrorMessage(error))
         }
+    },
 
-        // Real API call
-        const response = await apiClient.post<AuthResponse>('/auth/signup', data)
-        localStorage.setItem(AUTH_TOKEN_KEY, response.data.token)
-        return response.data
+    /**
+     * Login with Google
+     */
+    async loginWithGoogle(): Promise<AuthResponse> {
+        try {
+            const result = await signInWithPopup(auth, googleProvider)
+            return { user: mapFirebaseUserToAppUser(result.user) }
+        } catch (error: any) {
+            throw new Error(getErrorMessage(error))
+        }
+    },
+
+    /**
+     * Login with Apple
+     */
+    async loginWithApple(): Promise<AuthResponse> {
+        try {
+            const result = await signInWithPopup(auth, appleProvider)
+            return { user: mapFirebaseUserToAppUser(result.user) }
+        } catch (error: any) {
+            throw new Error(getErrorMessage(error))
+        }
     },
 
     /**
      * Logout current user
      */
-    logout() {
-        localStorage.removeItem(AUTH_TOKEN_KEY)
+    async logout(): Promise<void> {
+        try {
+            await signOut(auth)
+        } catch (error: any) {
+            throw new Error(getErrorMessage(error))
+        }
     },
 
     /**
-     * Get auth token
+     * Get current user
      */
-    getToken(): string | null {
-        return localStorage.getItem(AUTH_TOKEN_KEY)
+    getCurrentUser(): User | null {
+        const firebaseUser = auth.currentUser
+        return firebaseUser ? mapFirebaseUserToAppUser(firebaseUser) : null
     },
 
     /**
      * Check if user is authenticated
      */
     isAuthenticated(): boolean {
-        return !!this.getToken()
-    },
-
-    /**
-     * Get mock users from localStorage
-     */
-    getMockUsers(): Array<User & { password: string }> {
-        const usersJson = localStorage.getItem(MOCK_USERS_KEY)
-        return usersJson ? JSON.parse(usersJson) : []
+        return !!auth.currentUser
     },
 }
