@@ -216,77 +216,439 @@ git push                 # Otomatik Vercel deploy tetiklenir
 
 ## 🎯 SONRAKI ADIMLAR (Dashboard & Markets)
 
-### **Faz 1: Dashboard Layout (Öncelik: Yüksek)**
+### **🎨 TASARIM HEDEFİ**
+Paylaşılan 3 referans tasarıma göre modern trading platform UI:
+1. **Dashboard Overview** - Portfolio stats, watchlist, market news
+2. **Markets Page** - BIST hisse listesi, market movers, tabs (Borsa Istanbul, Forex, Crypto, NASDAQ)
+3. **Stock Detail** - Candlestick chart, key statistics, real-time data
 
-**Hedef:** Ana dashboard layout'u oluştur
+---
+
+### **Faz 1: Base Layout & Components (Öncelik: ÇOK YÜKSEK)**
+
+**Hedef:** Core layout ve reusable component'ler
 
 **Görevler:**
-1. **Sidebar Navigation**
-   ```tsx
-   // components/dashboard/sidebar.tsx
-   <Sidebar>
-     <NavItem href="/dashboard" icon={Home}>Dashboard</NavItem>
-     <NavItem href="/markets" icon={TrendingUp}>Markets</NavItem>
-     <NavItem href="/portfolio" icon={Wallet}>Portfolio</NavItem>
-     <NavItem href="/analytics" icon={BarChart}>Analytics</NavItem>
-     <NavItem href="/settings" icon={Settings}>Settings</NavItem>
-   </Sidebar>
-   ```
 
-2. **Top Navigation Bar**
-   ```tsx
-   // components/dashboard/navbar.tsx
-   - Logo (sol)
-   - Search bar (orta)
-   - User menu + Logout (sağ)
-   ```
+**1.1 Dashboard Layout**
+```typescript
+// app/dashboard/layout.tsx
+- Sidebar navigation (sol)
+  - Logo + "Pro Terminal"
+  - Nav items: Dashboard, Markets, Portfolio, Alerts, Settings
+  - User profile (alt)
+- Top navbar
+  - Market status indicator (open/closed + timezone)
+  - Global search (tickers, news, companies)
+  - Notifications bell
+  - Settings icon
+  - User avatar
+```
 
-3. **Dashboard Layout Wrapper**
-   ```tsx
-   // app/(dashboard)/layout.tsx
-   export default function DashboardLayout({ children }) {
-     return (
-       <ProtectedRoute>
-         <div className="flex h-screen">
-           <Sidebar />
-           <div className="flex-1 flex flex-col">
-             <Navbar />
-             <main className="flex-1 overflow-auto p-6">
-               {children}
-             </main>
-           </div>
-         </div>
-       </ProtectedRoute>
-     )
-   }
-   ```
+**1.2 Reusable Components**
+```typescript
+// components/dashboard/
+├── sidebar.tsx              # Sol menü
+├── navbar.tsx               # Üst bar
+├── stat-card.tsx            # "Total Balance" gibi kartlar
+├── market-card.tsx          # Market movers için küçük kartlar
+├── stock-row.tsx            # Tablo satırları
+└── mini-chart.tsx           # Küçük sparkline grafikleri
+```
 
 **Dosya Yapısı:**
 ```
 app/
-├── (dashboard)/            # Dashboard layout group
-│   ├── layout.tsx          # Sidebar + Navbar wrapper
-│   ├── dashboard/
-│   │   └── page.tsx        # Ana dashboard
+├── dashboard/
+│   ├── layout.tsx           # ✅ Protected wrapper + sidebar + navbar
+│   ├── page.tsx             # Overview (portfolio, watchlist, news)
 │   ├── markets/
-│   │   └── page.tsx        # Markets listesi
-│   ├── portfolio/
-│   │   └── page.tsx        # User portfolio
-│   └── analytics/
-│       └── page.tsx        # Analytics
+│   │   ├── page.tsx         # Market list + tabs
+│   │   └── [ticker]/
+│   │       └── page.tsx     # Stock detail page
+│   ├── portfolio/page.tsx
+│   └── settings/page.tsx
 ```
+
+**Tahmini Süre:** 3-4 saat
+
+---
+
+### **Faz 2: Dashboard Overview (Öncelik: YÜKSEK)**
+
+**Hedef:** Ana dashboard sayfası (Image 1 benzeri)
+
+**Görevler:**
+
+**2.1 Hero Section**
+```tsx
+- "Welcome back, {userName}"
+- "Here's what's happening with your portfolio today"
+- Export Report button
+```
+
+**2.2 Stats Cards (3 adet)**
+```tsx
+1. Total Balance ($124,532.00)
+   - Percentage change
+   - "vs yesterday"
+2. 24h Profit/Loss (+$1,240.50)
+   - Percentage change
+   - "in 24 hours"
+3. Buying Power ($45,000.00)
+   - "Available to trade"
+```
+
+**2.3 Portfolio Performance Chart**
+```tsx
+- Line chart (recharts kullan)
+- Timeframe tabs: 1D, 1W, 1M, 3M, 1Y, ALL
+- Real-time değerlerle (mock data başlangıç)
+```
+
+**2.4 Watchlist Widget**
+```tsx
+- Favorilere eklenen hisseler
+- Mini chart + current price + % change
+- Color coded (yeşil/kırmızı)
+```
+
+**2.5 Market News Widget**
+```tsx
+- Son haberler (ileride RSS entegrasyonu)
+- Thumbnail + başlık + kaynak + zaman
+- Carousel (prev/next buttons)
+```
+
+**Tahmini Süre:** 4-5 saat
+
+---
+
+### **Faz 3: Markets Page (Öncelik: YÜKSEK)**
+
+**Hedef:** BIST hisse senedi listesi (Image 2 benzeri)
+
+**Görevler:**
+
+**3.1 Market Tabs**
+```tsx
+- Borsa Istanbul (default)
+- Forex
+- Crypto
+- NASDAQ
+```
+
+**3.2 Market Sentiment Index**
+```tsx
+- Slider (Bearish ← Neutral → Bullish)
+- Score: 65/100
+- Based on trading volume and volatility
+```
+
+**3.3 Total Portfolio Value Widget**
+```tsx
+- Büyük sayı gösterimi
+- % change
+- Deposit / Withdraw buttons
+```
+
+**3.4 Market Movers Cards**
+```tsx
+- Top 4 büyük card
+- Ticker symbol + company name
+- Current price
+- % change (color coded)
+- Favorite star icon
+```
+
+**3.5 All Listings Table**
+```tsx
+Columns:
+- ⭐ Favorite
+- SYMBOL (THYAO)
+- NAME (Turkish Airlines)
+- PRICE (₺285.50)
+- CHANGE 24h (+2.4% color coded)
+- VOLUME (12.5M)
+- ACTION (Buy/Sell/Hold button)
+
+Features:
+- Tabs: All, Gainers, Losers
+- Pagination (5 of 42 results)
+- Real-time data from Python API
+```
+
+**API Integration:**
+```typescript
+// services/market.service.ts
+export async function fetchMarketMovers(limit = 4) {
+  const tickers = ['THYAO', 'GARAN', 'AKBNK', 'EREGL']
+  // Paralel fetch ile hepsini çek
+}
+
+export async function fetchAllListings(page = 1, limit = 10) {
+  // 124 ticker'ın hepsini çek
+  // Timeframe: 1d
+  // Son bar'ı al
+}
+```
+
+**Tahmini Süre:** 5-6 saat
+
+---
+
+### **Faz 4: Stock Detail Page (Öncelik: ORTA)**
+
+**Hedef:** Hisse detay sayfası (Image 3 benzeri)
+
+**Görevler:**
+
+**4.1 Header Section**
+```tsx
+- Ticker symbol (AAPL → THYAO gibi)
+- Company name
+- Exchange badge (NASDAQ → BIST)
+- Current price ($175.43 → ₺285.50)
+- % change (color coded)
+- Market status (Open/Closed + data delayed)
+- Watch button
+- Trade button
+```
+
+**4.2 Candlestick Chart**
+```tsx
+Library: lightweight-charts veya TradingView widget
+- Timeframe tabs: 1D, 1W, 1M, 3M, 1Y, YTD, ALL
+- Date range picker
+- Chart type toggle (candlestick, line, bar)
+- Fullscreen button
+- Volume bars (alt kısım)
+- Moving average line overlay
+```
+
+**4.3 Key Statistics Panel**
+```tsx
+- Open: 173.00
+- Prev Close: 173.33
+- High: 176.10
+- Low: 172.58
+- Volume: 54.2M
+- Avg Vol: 48.5M
+- Market Cap: 2.73T
+- 52W Range: slider gösterimi
+```
+
+**4.4 Order Book (Real-time)**
+```tsx
+- Price | Size | Total columns
+- Bid (yeşil) ve Ask (kırmızı) ayırımı
+- Spread: 0.01
+- Mock data (gerçek order book yok)
+```
+
+**4.5 Company Profile**
+```tsx
+- Şirket açıklaması
+- Sektor bilgisi
+- Kuruluş yılı vs.
+```
+
+**API Calls:**
+```typescript
+// Python API'den veri çek
+GET /v1/prices?ticker=THYAO&timeframe=1d&limit=365
+GET /v1/prices?ticker=THYAO&timeframe=1h&start=...&end=...
+```
+
+**Tahmini Süre:** 6-8 saat
+
+---
+
+### **Faz 5: Real-time Updates (Öncelik: DÜŞÜK)**
+
+**Hedef:** Gerçek zamanlı veri güncelleme
+
+**Görevler:**
+- React Query ile auto-refetch (5-10 saniye interval)
+- WebSocket entegrasyonu (ileride)
+- Optimistic updates
+- Loading skeletons
 
 **Tahmini Süre:** 2-3 saat
 
 ---
 
-### **Faz 2: Markets Page (Öncelik: Yüksek)**
+### **📊 PYTHON API BİLGİLERİ**
 
-**Hedef:** Piyasa verileri görüntüleme (mock data ile başla)
+**Base URL:** `https://evalon-mu.vercel.app`
 
-**Görevler:**
+**Mevcut Veri:**
+- 124 BIST hisse senedi ticker'ı
+- Toplam: 769,326 veri noktası
+- Tarih aralığı: 2026-01-21 ~ 2026-02-06 (13 gün)
+- Test için bu tarihler kullanılmalı
 
-1. **Market List Component**
+**Endpoints:**
+
+```bash
+# Son N bar (1 dakikalık)
+GET /v1/prices?ticker=THYAO&timeframe=1m&limit=1000
+
+# Belirli tarih aralığı
+GET /v1/prices?ticker=THYAO&timeframe=1m&start=2026-01-21T10:00:00&end=2026-01-21T18:00:00
+
+# Farklı timeframe'ler
+GET /v1/prices?ticker=THYAO&timeframe=5m&limit=500   # 5 dakika
+GET /v1/prices?ticker=THYAO&timeframe=1h&limit=200   # 1 saat
+GET /v1/prices?ticker=THYAO&timeframe=1d&limit=2000  # Günlük
+GET /v1/prices?ticker=THYAO&timeframe=1w&limit=500   # Haftalık
+GET /v1/prices?ticker=THYAO&timeframe=1M&limit=240   # Aylık
+```
+
+**Response Format:**
+```json
+{
+  "ticker": "THYAO",
+  "timeframe": "1h",
+  "rows": 100,
+  "data": [
+    {
+      "t": "2026-01-21T10:00:00",
+      "o": 285.50,  // open
+      "h": 287.20,  // high
+      "l": 284.80,  // low
+      "c": 286.90,  // close
+      "v": 1250000  // volume
+    }
+  ]
+}
+```
+
+**124 Ticker Listesi:**
+```
+AEFES, AGHOL, AKBNK, AKSA, AKSEN, ALARK, ALTNY, ANSGR, ARCLK, ASELS,
+ASTOR, BALSU, BIMAS, BRSAN, BRYAT, BSOKE, BTCIM, CANTE, CCOLA, CIMSA,
+CWENE, DAPGM, DOAS, DOHOL, DSTKF, ECILC, EFOR, EGEEN, EKGYO, ENERY,
+ENJSA, ENKAI, EREGL, EUPWR, FENER, FROTO, GARAN, GENIL, GESAN, GLRMK,
+GRSEL, GRTHO, GSRAY, GUBRF, HALKB, HEKTS, ISCTR, ISMEN, IZENR, KCAER,
+KCHOL, KLRHO, KONTR, KRDMD, KTLEV, KUYAS, MAGEN, MAVI, MGROS, MIATK,
+MPARK, OBAMS, ODAS, OTKAR, OYAKC, PASEU, PATEK, PETKM, PGSUS, QUAGR,
+RALYH, REEDR, SAHOL, SASA, SISE, SKBNK, SOKM, TABGD, TAVHL, TCELL,
+THYAO, TKFEN, TOASO, TRALT, TRENJ, TRMET, TSKB, TSPOR, TTKOM, TTRAK,
+TUKAS, TUPRS, TUREX, TURSG, ULKER, VAKBN, VESTL, YEOTK, YKBNK, ZOREN,
+AKCNS, AKENR, AKFGY, ALGYO, ALFAS, AHGAZ, AGROT, ARDYZ, BAGFS,
+BIZIM, CLEBI, DEVA, GWIND, ISGYO, KAREL, LOGO, NETAS, PETUN,
+PNSUT, SELEC, TMSN, VESBE, ZEDUR, IZFAS
+```
+
+---
+
+### **🎨 UI COMPONENT LİBRARY**
+
+**Kullanılacak Kütüphaneler:**
+
+1. **Chart Library:**
+   - Option 1: `lightweight-charts` (TradingView tarafından, profesyonel)
+   - Option 2: `recharts` (daha basit, hızlı entegrasyon)
+   - Option 3: TradingView Widget (iframe, hazır çözüm)
+
+2. **Table:**
+   - `@tanstack/react-table` (sorting, filtering, pagination)
+
+3. **Icons:**
+   - `lucide-react` (zaten var ✅)
+
+4. **Data Fetching:**
+   - `@tanstack/react-query` (zaten var ✅)
+
+---
+
+### **📁 KOMPONENTE YAPISI (Güncellenmiş)**
+
+```
+components/
+├── dashboard/
+│   ├── sidebar.tsx              # Sol navigasyon
+│   ├── navbar.tsx               # Üst bar (search, notifications, user)
+│   ├── stat-card.tsx            # "Total Balance" kartları
+│   ├── market-card.tsx          # Market movers küçük kartlar
+│   ├── watchlist-item.tsx       # Watchlist row
+│   ├── news-card.tsx            # Market news item
+│   └── portfolio-chart.tsx      # Ana portfolio line chart
+├── markets/
+│   ├── market-tabs.tsx          # Borsa Istanbul, Forex, Crypto tabs
+│   ├── sentiment-index.tsx      # Market sentiment slider
+│   ├── market-movers.tsx        # Top 4 büyük kartlar
+│   ├── listings-table.tsx       # Ana hisse listesi table
+│   └── stock-row.tsx            # Table row component
+├── stock-detail/
+│   ├── stock-header.tsx         # Ticker, price, watch button
+│   ├── candlestick-chart.tsx    # Ana büyük chart
+│   ├── key-statistics.tsx       # Sağ panel (Open, High, Low, etc.)
+│   ├── order-book.tsx           # Bid/Ask tablosu
+│   └── company-profile.tsx      # Şirket açıklaması
+└── shared/
+    ├── mini-chart.tsx           # Küçük sparkline
+    ├── price-badge.tsx          # Fiyat + % change (color coded)
+    └── loading-skeleton.tsx     # Skeleton loaders
+```
+
+---
+
+## 📈 TOPLAM TAHMİNİ SÜRE
+
+**Dashboard Development:** 20-27 saat
+- Faz 1: Base Layout → 3-4 saat
+- Faz 2: Dashboard Overview → 4-5 saat
+- Faz 3: Markets Page → 5-6 saat
+- Faz 4: Stock Detail → 6-8 saat
+- Faz 5: Real-time Updates → 2-3 saat
+
+**Proje Tamamlanma Oranı:**
+- Şu an: %35 (Auth + Infrastructure)
+- Dashboard sonrası: %70
+- Tüm özellikler: %100 (35-55 saat toplam)
+
+---
+
+## 🗂️ ÖNEM SIRASI VE MILESTONE'LAR
+
+**Milestone 1: Functional Layout (Hafta 1)**
+- ✅ Sidebar + Navbar ✓
+- ✅ Protected route wrapper ✓
+- ✅ Basic navigation ✓
+
+**Milestone 2: Dashboard Overview (Hafta 1-2)**
+- ✅ Stats cards ✓
+- ✅ Portfolio chart ✓
+- ✅ Watchlist widget ✓
+
+**Milestone 3: Markets List (Hafta 2)**
+- ✅ Market tabs ✓
+- ✅ BIST hisse listesi ✓
+- ✅ Real-time data integration ✓
+
+**Milestone 4: Stock Detail  (Hafta 3)**
+- ✅ Candlestick chart ✓
+- ✅ Key statistics ✓
+- ✅ Order book ✓
+
+---
+
+## 🔥 İLK SESSION'DA BAŞLANGIÇ
+
+**Quick Start (İlk 1-2 saat):**
+1. Dashboard layout oluştur
+2. Sidebar component (static nav items)
+3. Navbar component (logo + user avatar)
+4. Dashboard page (basit "Welcome" mesajı)
+5. Test & commit
+
+**Sonraki Adım:**
+- Stats cards ekle (mock data)
+- Python API'ye ilk istek (single ticker test)
+
+---
    ```tsx
    // components/markets/market-list.tsx
    - Market kategorileri: BIST, NASDAQ, FOREX, CRYPTO

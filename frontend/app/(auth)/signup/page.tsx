@@ -48,7 +48,7 @@ export default function SignupPage() {
         try {
             const { user } = await authService.signup({ email, password, name })
             login(user)
-            router.push('/')
+            router.push('/dashboard')
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Signup failed')
         } finally {
@@ -63,7 +63,7 @@ export default function SignupPage() {
         try {
             const { user } = await authService.loginWithGoogle()
             login(user)
-            router.push('/')
+            router.push('/dashboard')
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Google signup failed')
         } finally {
@@ -78,7 +78,7 @@ export default function SignupPage() {
         try {
             const { user } = await authService.loginWithApple()
             login(user)
-            router.push('/')
+            router.push('/dashboard')
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Apple signup failed')
         } finally {
@@ -87,29 +87,30 @@ export default function SignupPage() {
     }
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-[#1a1f2e] p-4">
-            <div className="w-full max-w-md space-y-6">
-                {/* Logo */}
-                <div className="flex justify-center">
-                    <Image
-                        src="/images/logo.jpeg"
-                        alt="EVALON"
-                        width={150}
-                        height={60}
-                        className="h-16 w-auto"
-                        priority
-                    />
-                </div>
-
+        <div className="relative flex min-h-screen items-center justify-center p-4">
+            {/* Background Image */}
+            <div 
+                className="absolute inset-0 z-0" 
+                style={{
+                    backgroundImage: 'url(/images/backgrounds/auth-bg.png)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                }}
+            >
+                <div className="absolute inset-0 bg-black/40" />
+            </div>
+            
+            <div className="relative z-10 w-full max-w-md space-y-6">
                 {/* Signup Card */}
-                <Card className="border-slate-700 bg-[#212633] p-8">
+                <Card className="border-slate-600/30 bg-slate-900/70 backdrop-blur-2xl p-8 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
                     <div className="space-y-6">
                         {/* Header */}
                         <div className="text-center">
-                            <h1 className="text-2xl font-semibold text-white">
+                            <h1 className="text-2xl font-semibold text-white/95">
                                 Create your account
                             </h1>
-                            <p className="mt-2 text-sm text-slate-400">
+                            <p className="mt-2 text-sm text-slate-300">
                                 Start tracking your portfolio like a pro.
                             </p>
                         </div>
@@ -118,7 +119,7 @@ export default function SignupPage() {
                         <form onSubmit={handleSubmit} className="space-y-4">
                             {/* Name */}
                             <div className="space-y-2">
-                                <Label htmlFor="name" className="text-white">
+                                <Label htmlFor="name" className="text-slate-200 text-sm font-medium">
                                     Full Name
                                 </Label>
                                 <Input
@@ -129,13 +130,13 @@ export default function SignupPage() {
                                     onChange={(e) => setName(e.target.value)}
                                     autoComplete="name"
                                     required
-                                    className="border-slate-600 bg-[#1a1f2e] text-white placeholder:text-slate-500"
+                                    className="border-slate-500/30 bg-slate-800/30 backdrop-blur-sm text-white placeholder:text-slate-400 focus:border-blue-500/50 transition-colors"
                                 />
                             </div>
 
                             {/* Email */}
                             <div className="space-y-2">
-                                <Label htmlFor="email" className="text-white">
+                                <Label htmlFor="email" className="text-slate-200 text-sm font-medium">
                                     Email Address
                                 </Label>
                                 <Input
@@ -146,13 +147,13 @@ export default function SignupPage() {
                                     onChange={(e) => setEmail(e.target.value)}
                                     autoComplete="email"
                                     required
-                                    className="border-slate-600 bg-[#1a1f2e] text-white placeholder:text-slate-500"
+                                    className="border-slate-500/30 bg-slate-800/30 backdrop-blur-sm text-white placeholder:text-slate-400 focus:border-blue-500/50 transition-colors"
                                 />
                             </div>
 
                             {/* Password */}
                             <div className="space-y-2">
-                                <Label htmlFor="password" className="text-white">
+                                <Label htmlFor="password" className="text-slate-200 text-sm font-medium">
                                     Password
                                 </Label>
                                 <Input
@@ -164,7 +165,7 @@ export default function SignupPage() {
                                     autoComplete="new-password"
                                     required
                                     minLength={8}
-                                    className="border-slate-600 bg-[#1a1f2e] text-white placeholder:text-slate-500"
+                                    className="border-slate-500/30 bg-slate-800/30 backdrop-blur-sm text-white placeholder:text-slate-400 focus:border-blue-500/50 transition-colors"
                                 />
                                 <p className="text-xs text-slate-500">
                                     Must be at least 8 characters

@@ -37,8 +37,21 @@ export default function ForgotPasswordPage() {
     }
 
     return (
-        <div className="flex min-h-screen items-center justify-center p-4">
-            <Card className="w-full max-w-md border-slate-800 bg-slate-900">
+        <div className="relative flex min-h-screen items-center justify-center p-4">
+            {/* Background Image */}
+            <div 
+                className="absolute inset-0 z-0" 
+                style={{
+                    backgroundImage: 'url(/images/backgrounds/auth-bg.png)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                }}
+            >
+                <div className="absolute inset-0 bg-black/40" />
+            </div>
+            
+            <Card className="relative z-10 w-full max-w-md border-slate-600/30 bg-slate-900/70 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
                 <CardHeader>
                     <CardTitle className="text-2xl text-white">Reset Password</CardTitle>
                     <CardDescription className="text-slate-400">
