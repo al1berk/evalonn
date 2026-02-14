@@ -94,9 +94,9 @@ export default function SignupPage() {
                     <Image
                         src="/images/logo.jpeg"
                         alt="EVALON"
-                        width={200}
-                        height={80}
-                        className="h-20 w-auto"
+                        width={150}
+                        height={60}
+                        className="h-16 w-auto"
                         priority
                     />
                 </div>

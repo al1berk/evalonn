@@ -69,8 +69,7 @@ evalon-web/
 │
 ├── .env.local                     ⚠️ Local only (gitignore'da)
 ├── next.config.ts                 ✅ SSR enabled
-├── package.json                   
-└── wrangler.toml                  ⚠️ Cloudflare artifact (kullanılmıyor)
+└── package.json
 ```
 
 ---
@@ -540,7 +539,7 @@ Vercel Hobby: 45 saniye build timeout
 - typeof window !== 'undefined'       # Client-only checks
 + Universal code (client + server)    # SSR compatible
 
-- wrangler.toml                       # Cloudflare config
+- Cloudflare Pages/Workers config     # wrangler.jsonc removed
 + Vercel auto-detection               # Zero config
 ```
 
