@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "export",
+  // Vercel'de full Next.js features aktif
   images: {
-    unoptimized: true,
+    unoptimized: false, // Vercel Image Optimization kullanılacak
   },
   /* config options here */
 };
