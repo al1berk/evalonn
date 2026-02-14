@@ -186,22 +186,27 @@ git push                 # Otomatik Vercel deploy tetiklenir
 ### ✅ **Çalışan Özellikler**
 - [x] Email/Password signup
 - [x] Email/Password login
-- [x] Google Sign-In
+- [x] Google Sign-In ✅
+- [x] Forgot password sayfası ✅
+- [x] Terms of Service sayfası ✅
+- [x] Privacy Policy sayfası ✅
+- [x] Help Center sayfası ✅
 - [x] Logout
 - [x] Protected routes
 - [x] Auth state persistence
+- [x] Form autocomplete attributes ✅
+- [x] Logo sizing fixed ✅
 - [x] Responsive UI
-- [x] Production deployment
+- [x] Production deployment (Vercel)
 
 ### ⏳ **Eksik/TODO**
-- [ ] Apple Sign-In test (Firebase'de enabled ama test edilmedi)
-- [ ] Forgot password sayfası (`/forgot-password`)
-- [ ] Terms of Service sayfası (`/terms`)
-- [ ] Privacy Policy sayfası (`/privacy`)
-- [ ] Help Center sayfası (`/help`)
-- [ ] Dashboard içerik
-- [ ] Market data sayfaları
-- [ ] Python API entegrasyonu
+- [ ] Apple Sign-In (Apple Developer hesabı gerekli - şimdilik disabled)
+- [ ] Dashboard layout ve içerik
+- Cross-Origin-Opener-Policy warning (Firebase popup - normal davranış)
+- Apple Sign-In disabled (Apple Developer Account gerekli - $99/yıl)
+- React DevTools suggestion (optional browser extension
+- [ ] User settings sayfası
+- [ ] Portfolio sayfası
 
 ### ⚠️ **Known Issues**
 - 404 warnings konsola düşüyor (terms, privacy, help sayfaları yok - zararsız)
@@ -684,14 +689,35 @@ open http://localhost:3000
 - Markets page
 - Python API integration
 - Real-time data
-
-**Proje durumu:** %30 complete (Auth + Infrastructure done)  
-**Tahmini toplam süre:** ~40-60 saat (dashboard + markets + features)
+5 complete (Auth + Infrastructure + Static Pages done)  
+**Tahmini toplam süre:** ~35-55 saat (dashboard + markets + features)
 
 ---
 
 **Son Güncelleme:** 14 Şubat 2026  
-**Versiyon:** 1.0  
+**Versiyon:** 1.1  
+**Son Commit:** db99f6e (fix: add autocomplete attributes and disable Apple Sign-In)  
+**Deployment:** https://[your-app].vercel.app
+
+## 📝 SON SESSION NOTU (14 Şubat 2026)
+
+**Tamamlananlar:**
+- ✅ PROJECT_STATUS.md oluşturuldu (session handoff için)
+- ✅ Cloudflare artifacts temizlendi (wrangler.jsonc, deploy script)
+- ✅ 4 eksik sayfa eklendi (forgot-password, terms, privacy, help)
+- ✅ Logo boyutu düzeltildi (h-20 → h-16)
+- ✅ Autocomplete attributes eklendi (browser autofill için)
+- ✅ Apple Sign-In geçici disabled (Apple Developer hesabı gerekli)
+- ✅ Gizli bilgiler temizlendi (PROJECT_STATUS.md git'e pushlanabilir)
+
+**Git Commits:**
+- f0cc322: docs: add project handoff documentation with sanitized credentials
+- 538c926: chore: remove Cloudflare artifacts
+- 55c9a93: feat: add missing auth pages and fix logo size
+- db99f6e: fix: add autocomplete attributes and disable Apple Sign-In
+
+**Sonraki Session:**
+Dashboard layout geliştirme (Faz 1 - Priority: Yüksek)
 **Deployment:** https://[your-app].vercel.app
 
 🚀 **Başarılar! Hadi dashboard'a geçelim!**
