@@ -35,3 +35,30 @@ export interface PriceHistory {
     close: number
     volume: number
 }
+
+// Evalon API Types
+export interface PriceBar {
+    t: string   // timestamp (ISO format)
+    o: number   // open
+    h: number   // high
+    l: number   // low
+    c: number   // close
+    v: number   // volume
+}
+
+export interface PriceResponse {
+    ticker: string
+    timeframe: string
+    rows: number
+    data: PriceBar[]
+}
+
+// Watchlist item for dashboard
+export interface WatchlistItem {
+    ticker: string
+    name: string
+    price: number
+    change: number
+    changePercent: number
+    priceHistory: PriceBar[]
+}
