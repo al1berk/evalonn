@@ -59,6 +59,15 @@ export function PortfolioChart() {
     const changePercent = firstValue > 0 ? (change / firstValue) * 100 : 0
     const isPositive = change >= 0
 
+    // Get date for 1D display
+    const chartDate = data?.data[0]?.t
+        ? new Date(data.data[0].t).toLocaleDateString('tr-TR', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+          })
+        : ''
+
     return (
         <Card className="bg-gradient-to-br from-[#1a1f2e] to-[#151923] border-slate-800/50 hover:border-blue-500/30 transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -71,7 +80,7 @@ export function PortfolioChart() {
                             Portfolio Performance
                         </CardTitle>
                         <p className="text-xs text-slate-400 mt-0.5">
-                            BIST Demo Verisi
+                            {period === '1D' && chartDate ? chartDate : 'BIST Demo Verisi'}
                         </p>
                     </div>
                 </div>
