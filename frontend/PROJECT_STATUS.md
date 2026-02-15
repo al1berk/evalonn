@@ -2,31 +2,31 @@
 
 **Son Güncelleme:** 15 Şubat 2026  
 **Versiyon:** 2.0  
-**Aktif Faz:** Faz 2 - Dashboard Overview
+**Aktif Faz:** Faz 2 Tamamlandı ✅ - Sonraki: Faz 3
 
 ---
 
-## FAZ 2 - AKTİF ÇALIŞMA
+## FAZ 2 - TAMAMLANDI ✅
 
 ### Hedef
 Dashboard sayfasına 3 yeni widget eklemek:
-1. Portfolio Performance Chart (recharts)
-2. Watchlist Widget (API'den top movers + mini charts)
-3. Market News Widget (mock data ile carousel)
+1. Portfolio Performance Chart (recharts) ✅
+2. Watchlist Widget (API'den top movers + mini charts) ✅
+3. Market News Widget (mock data ile carousel) ✅
 
-### Checklist
-- [x] **Adım 1:** recharts kütüphanesini yükle ✅
-- [x] **Adım 2:** API types ekle (`types/index.ts` → PriceBar, PriceResponse, WatchlistItem) ✅
-- [x] **Adım 3:** Environment variable ekle (`NEXT_PUBLIC_EVALON_API_URL`) + `lib/constants.ts`'e okuma ekle ✅
-- [x] **Adım 4:** Price service oluştur (`services/price.service.ts`) ✅
-- [x] **Adım 5:** React Query hooks oluştur (`hooks/use-prices.ts`) ✅
-- [x] **Adım 6:** Portfolio chart component (`components/dashboard/portfolio-chart.tsx`) ✅
-- [x] **Adım 7:** Mini chart component (`components/dashboard/mini-chart.tsx`) ✅
-- [x] **Adım 8:** Watchlist widget (`components/dashboard/watchlist-widget.tsx`) ✅
-- [x] **Adım 9:** Mock news data (`data/news.mock.ts`) ✅
-- [x] **Adım 10:** News carousel (`components/dashboard/news-carousel.tsx`) ✅
-- [x] **Adım 11:** Dashboard page güncelle (`app/dashboard/page.tsx`) ✅
-- [ ] **Adım 12:** Responsive test ve final polish
+### Tamamlanan Adımlar
+- [x] recharts kütüphanesi
+- [x] API types (PriceBar, PriceResponse, WatchlistItem)
+- [x] Environment variable + constants.ts
+- [x] Price service + API proxy (CORS fix)
+- [x] React Query hooks
+- [x] Portfolio chart (ResizeObserver ile)
+- [x] Mini chart
+- [x] Watchlist widget
+- [x] News carousel
+- [x] Dashboard page entegrasyonu
+
+**Commit:** `3d6302a` - feat: add dashboard overview widgets (Phase 2)
 
 ### Timeframe Mapping (MVP)
 | UI | API Timeframe | Limit |
