@@ -159,8 +159,8 @@ export function PortfolioChart() {
                                     color: '#fff',
                                 }}
                                 labelStyle={{ color: '#94a3b8' }}
-                                formatter={(value: number) => [
-                                    `₺${value.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`,
+                                formatter={(value) => [
+                                    `₺${(value as number).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`,
                                     'Fiyat',
                                 ]}
                             />
