@@ -42,15 +42,83 @@ export function PortfolioChart() {
         return () => resizeObserver.disconnect()
     }, [])
 
-    // Transform data for recharts
-    const chartData = data?.data.map((bar) => ({
-        time: new Date(bar.t).toLocaleTimeString('tr-TR', {
-            hour: '2-digit',
-            minute: '2-digit',
-            ...(period !== '1D' && { day: '2-digit', month: 'short' }),
-        }),
-        value: bar.c,
-    })) || []
+    // Process and filter data for recharts
+    const processedData = (() => {
+        if (!data?.data || data.data.length === 0) return { chartData: [], chartDate: '' }
+
+        // Sort by timestamp ascending
+        const sorted = [...data.data].sort(
+            (a, b) => new Date(a.t).getTime() - new Date(b.t).getTime()
+        )
+
+        // For 1D: filter to show only the most recent trading day
+        let filtered = sorted
+        if (period === '1D') {
+            // Group by date
+            const byDate = new Map<string, typeof sorted>()
+            sorted.forEach((bar) => {
+                const dateKey = new Date(bar.t).toDateString()
+                const existing = byDate.get(dateKey) || []
+                existing.push(bar)
+                byDate.set(dateKey, existing)
+            })
+
+            // Get sorted dates (most recent first)
+            const sortedDates = Array.from(byDate.keys()).sort(
+                (a, b) => new Date(b).getTime() - new Date(a).getTime()
+            )
+
+            // Select most recent day with at least 10 bars (minimum threshold)
+            const MIN_BARS = 10
+            let targetDate = sortedDates[0] // fallback to most recent
+            for (const date of sortedDates) {
+                const bars = byDate.get(date) || []
+                if (bars.length >= MIN_BARS) {
+                    targetDate = date
+                    break
+                }
+            }
+
+            filtered = byDate.get(targetDate) || sorted
+        }
+
+        // Transform for chart - use label string for category axis
+        const chartData = filtered.map((bar) => {
+            const date = new Date(bar.t)
+            let label: string
+            if (period === '1D') {
+                label = date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+            } else if (period === '1W') {
+                label = date.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit' })
+            } else {
+                label = date.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })
+            }
+            return {
+                label,
+                value: bar.c,
+                fullDate: date.toLocaleString('tr-TR', { 
+                    day: 'numeric', 
+                    month: 'long', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                }),
+            }
+        })
+
+        // Get display date from filtered data
+        const chartDate = filtered[0]?.t
+            ? new Date(filtered[0].t).toLocaleDateString('tr-TR', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+              })
+            : ''
+
+        return { chartData, chartDate }
+    })()
+
+    const { chartData, chartDate } = processedData
+
 
     // Calculate change
     const firstValue = chartData[0]?.value || 0
@@ -58,15 +126,6 @@ export function PortfolioChart() {
     const change = lastValue - firstValue
     const changePercent = firstValue > 0 ? (change / firstValue) * 100 : 0
     const isPositive = change >= 0
-
-    // Get date for 1D display
-    const chartDate = data?.data[0]?.t
-        ? new Date(data.data[0].t).toLocaleDateString('tr-TR', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-          })
-        : ''
 
     return (
         <Card className="bg-gradient-to-br from-[#1a1f2e] to-[#151923] border-slate-800/50 hover:border-blue-500/30 transition-all duration-300">
@@ -77,10 +136,10 @@ export function PortfolioChart() {
                     </div>
                     <div>
                         <CardTitle className="text-base font-medium text-white">
-                            Portfolio Performance
+                            Piyasa Görünümü
                         </CardTitle>
                         <p className="text-xs text-slate-400 mt-0.5">
-                            {period === '1D' && chartDate ? chartDate : 'BIST Demo Verisi'}
+                            THYAO
                         </p>
                     </div>
                 </div>
@@ -146,11 +205,13 @@ export function PortfolioChart() {
                                 </linearGradient>
                             </defs>
                             <XAxis
-                                dataKey="time"
+                                dataKey="label"
                                 axisLine={false}
                                 tickLine={false}
                                 tick={{ fill: '#64748b', fontSize: 10 }}
                                 interval="preserveStartEnd"
+                                minTickGap={40}
+                                padding={{ left: 10, right: 10 }}
                             />
                             <YAxis
                                 domain={['dataMin - 1', 'dataMax + 1']}
@@ -168,6 +229,12 @@ export function PortfolioChart() {
                                     color: '#fff',
                                 }}
                                 labelStyle={{ color: '#94a3b8' }}
+                                labelFormatter={(_, payload) => {
+                                    if (payload && payload[0]?.payload?.fullDate) {
+                                        return payload[0].payload.fullDate
+                                    }
+                                    return ''
+                                }}
                                 formatter={(value) => [
                                     `₺${(value as number).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`,
                                     'Fiyat',

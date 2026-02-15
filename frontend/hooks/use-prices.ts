@@ -33,8 +33,8 @@ export function usePrices(ticker: string, timeframe: Timeframe, limit: number = 
  */
 export function usePortfolioChart(period: '1D' | '1W' | '1M' = '1D') {
     const config = {
-        '1D': { timeframe: '5m' as Timeframe, limit: 100 }, // ~8 saat = tek işlem günü
-        '1W': { timeframe: '1h' as Timeframe, limit: 168 },
+        '1D': { timeframe: '5m' as Timeframe, limit: 100 },  // ~8 saat = tek işlem günü
+        '1W': { timeframe: '1h' as Timeframe, limit: 40 },   // 5 gün × 8 saat = gerçek 1 hafta
         '1M': { timeframe: '1d' as Timeframe, limit: 30 },
     }
 

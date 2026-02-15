@@ -10,8 +10,8 @@
 
 ### Hedef
 Dashboard sayfasına 3 yeni widget eklemek:
-1. Portfolio Performance Chart (recharts) ✅
-2. Watchlist Widget (API'den top movers + mini charts) ✅
+1. Piyasa Görünümü Chart (recharts) ✅
+2. Watchlist Widget (API'den BIST hisseleri + mini charts) ✅
 3. Market News Widget (mock data ile carousel) ✅
 
 ### Tamamlanan Adımlar
@@ -20,20 +20,24 @@ Dashboard sayfasına 3 yeni widget eklemek:
 - [x] Environment variable + constants.ts
 - [x] Price service + API proxy (CORS fix)
 - [x] React Query hooks
-- [x] Portfolio chart (ResizeObserver ile)
-- [x] Mini chart
-- [x] Watchlist widget
-- [x] News carousel
+- [x] Piyasa görünümü chart (category axis, ResizeObserver)
+- [x] Mini chart (fixed dimensions)
+- [x] Watchlist widget (THYAO, GARAN, ASELS, EREGL)
+- [x] News carousel (mock data)
 - [x] Dashboard page entegrasyonu
+- [x] Chart iyileştirmeleri (category axis, label formatting)
 
-**Commit:** `3d6302a` - feat: add dashboard overview widgets (Phase 2)
+### Timeframe Mapping (Güncel)
+| UI | API Timeframe | Limit | Açıklama |
+|----|---------------|-------|----------|
+| 1D | 5m | 100 | ~1 işlem günü |
+| 1W | 1h | 40 | 5 gün × 8 saat |
+| 1M | 1d | 30 | 30 gün |
 
-### Timeframe Mapping (MVP)
-| UI | API Timeframe | Limit |
-|----|---------------|-------|
-| 1D | 1h | 24 |
-| 1W | 1h | 168 |
-| 1M | 1d | 30 |
+### Bilinen Kısıtlamalar
+- **5m verisi kısıtlı:** API'de sadece 21-23 Ocak arası 5m data mevcut
+- **1D görünümü:** Eski tarih gösterebilir (API veri eksikliği nedeniyle)
+- **Çözüm bekliyor:** API tarafından daha fazla 5m verisi eklenmesi
 
 ### Opsiyonel Alternatif
 İleride grafikler arkadaşın hazırladığı webview/iframe ile değiştirilebilir (CSP/X-Frame-Options ayarı gerekir).
