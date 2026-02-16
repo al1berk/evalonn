@@ -48,7 +48,7 @@ export default function SignupPage() {
         try {
             const { user } = await authService.signup({ email, password, name })
             login(user)
-            router.push('/dashboard')
+            router.push('/')
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Signup failed')
         } finally {
@@ -63,7 +63,7 @@ export default function SignupPage() {
         try {
             const { user } = await authService.loginWithGoogle()
             login(user)
-            router.push('/dashboard')
+            router.push('/')
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Google signup failed')
         } finally {
@@ -78,7 +78,7 @@ export default function SignupPage() {
         try {
             const { user } = await authService.loginWithApple()
             login(user)
-            router.push('/dashboard')
+            router.push('/')
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Apple signup failed')
         } finally {
@@ -89,8 +89,8 @@ export default function SignupPage() {
     return (
         <div className="relative flex min-h-screen items-center justify-center p-4">
             {/* Background Image */}
-            <div 
-                className="absolute inset-0 z-0" 
+            <div
+                className="absolute inset-0 z-0"
                 style={{
                     backgroundImage: 'url(/images/backgrounds/auth-bg.png)',
                     backgroundSize: 'cover',
@@ -100,7 +100,7 @@ export default function SignupPage() {
             >
                 <div className="absolute inset-0 bg-black/40" />
             </div>
-            
+
             <div className="relative z-10 w-full max-w-md space-y-6">
                 {/* Signup Card */}
                 <Card className="border-slate-600/30 bg-slate-900/70 backdrop-blur-2xl p-8 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">

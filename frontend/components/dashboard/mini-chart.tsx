@@ -10,11 +10,11 @@ interface MiniChartProps {
     height?: number
 }
 
-export function MiniChart({ 
-    data, 
-    isPositive, 
-    width = 60, 
-    height = 28 
+export function MiniChart({
+    data,
+    isPositive,
+    width = 60,
+    height = 28
 }: MiniChartProps) {
     // Transform data for recharts
     const chartData = data.map((bar) => ({
@@ -23,14 +23,14 @@ export function MiniChart({
 
     if (chartData.length === 0) {
         return (
-            <div 
-                style={{ width, height }} 
-                className="bg-slate-800/30 rounded animate-pulse"
+            <div
+                style={{ width, height }}
+                className="bg-secondary/50 rounded animate-pulse"
             />
         )
     }
 
-    const strokeColor = isPositive ? '#26A69A' : '#EF5350'
+    const strokeColor = isPositive ? 'var(--chart-2)' : 'var(--chart-3)'
 
     // Use fixed dimensions instead of ResponsiveContainer to avoid sizing issues
     return (

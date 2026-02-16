@@ -27,7 +27,7 @@ export default function LoginPage() {
         try {
             const { user } = await authService.login({ email, password })
             login(user)
-            router.push('/dashboard')
+            router.push('/')
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Login failed')
         } finally {
@@ -42,7 +42,7 @@ export default function LoginPage() {
         try {
             const { user } = await authService.loginWithGoogle()
             login(user)
-            router.push('/dashboard')
+            router.push('/')
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Google login failed')
         } finally {
@@ -57,7 +57,7 @@ export default function LoginPage() {
         try {
             const { user } = await authService.loginWithApple()
             login(user)
-            router.push('/dashboard')
+            router.push('/')
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Apple login failed')
         } finally {
@@ -68,8 +68,8 @@ export default function LoginPage() {
     return (
         <div className="relative flex min-h-screen items-center justify-center p-4">
             {/* Background Image */}
-            <div 
-                className="absolute inset-0 z-0" 
+            <div
+                className="absolute inset-0 z-0"
                 style={{
                     backgroundImage: 'url(/images/backgrounds/auth-bg.png)',
                     backgroundSize: 'cover',
@@ -79,7 +79,7 @@ export default function LoginPage() {
             >
                 <div className="absolute inset-0 bg-black/40" />
             </div>
-            
+
             <div className="relative z-10 w-full max-w-md space-y-6">
                 {/* Login Card */}
                 <Card className="border-slate-600/30 bg-slate-900/70 backdrop-blur-2xl p-8 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">

@@ -8,7 +8,7 @@ import { authService } from '@/services/auth.service'
 import { Button } from '@/components/ui/button'
 
 const navLinks = [
-  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/', label: 'Dashboard' },
   { href: '/dashboard/markets', label: 'Markets' },
   { href: '/dashboard/portfolio', label: 'Portfolio' },
   { href: '/dashboard/alerts', label: 'Alerts' },
@@ -23,7 +23,7 @@ export function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-slate-800/50 bg-[#131722]/95 backdrop-blur-xl shadow-2xl">
+    <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur-xl shadow-2xl">
       <div className="w-full px-3 sm:px-6 lg:px-10 xl:px-12 flex h-16 items-center gap-4 lg:gap-8">
         {/* Logo */}
         <Link href="/dashboard" className="flex items-center gap-2 font-bold text-lg sm:text-xl flex-shrink-0">
@@ -41,11 +41,10 @@ export function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  isActive
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                }`}
+                className={`px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  }`}
               >
                 {link.label}
               </Link>
