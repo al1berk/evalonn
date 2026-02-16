@@ -1,9 +1,18 @@
 'use client'
 
 import Link from 'next/link'
-import { Search, Menu, X } from 'lucide-react'
+import { Search, Menu, X, User } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Switch } from '@/components/ui/switch'
 
 export function LandingNavbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -52,12 +61,40 @@ export function LandingNavbar() {
 
           {/* Auth Buttons */}
           <div className="flex items-center gap-4">
-            <Link
-              href="/login"
-              className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full hover:bg-[#2a2e39] transition-colors text-white"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-            </Link>
+
+            {/* Profile Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full hover:bg-[#2a2e39] transition-colors text-white outline-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 bg-[#1e222d] border-[#2a2e39] text-[#d1d4dc] p-2 mt-2 shadow-xl backdrop-blur-3xl rounded-xl">
+                <DropdownMenuItem className="focus:bg-[#2a2e39] focus:text-white cursor-pointer p-0 mb-1 rounded-lg outline-none border-none">
+                  <Link href="/login" className="flex items-center gap-3 w-full px-3 py-3 group">
+                    <User strokeWidth={2} size={24} className="text-[#2962ff] group-hover:text-[#2962ff]" />
+                    <span className="font-medium text-white text-[16px] group-hover:text-[#2962ff] transition-colors">Sign in</span>
+                  </Link>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator className="bg-[#2a2e39] my-1" />
+
+                <DropdownMenuItem className="focus:bg-[#2a2e39] focus:text-white cursor-pointer py-3 px-3 rounded-lg outline-none text-[15px]">
+                  Help Center
+                </DropdownMenuItem>
+                <DropdownMenuItem className="focus:bg-[#2a2e39] focus:text-white cursor-pointer py-3 px-3 rounded-lg outline-none text-[15px]">
+                  What's new
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator className="bg-[#2a2e39] my-1" />
+
+                <div className="flex items-center justify-between px-3 py-3 rounded-lg hover:bg-[#2a2e39] transition-colors cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                  <span className="text-[15px] text-white">Dark theme</span>
+                  <Switch checked={true} className="data-[state=checked]:bg-[#2962ff] border-2 border-transparent" />
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Link
               href="/pricing"
               className="inline-flex items-center justify-center px-6 py-2.5 text-[15px] font-bold text-white bg-[#2962ff] rounded-full hover:bg-[#1e53e5] transition-all"
@@ -91,3 +128,4 @@ export function LandingNavbar() {
     </nav>
   )
 }
+
