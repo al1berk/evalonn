@@ -68,47 +68,48 @@
   --popover: #0f0f0f;
   --popover-foreground: #ffffff;
 
-  --primary: #328ea6;
-  /* User Blue/Teal */
+  --primary: #2862ff;
+  /* User Blue */
   --primary-foreground: #ffffff;
 
-  --secondary: #0f0f0f;
-  /* Secondary elements */
+  --secondary: #2e2e2e;
+  /* Search/Inputs */
   --secondary-foreground: #ffffff;
 
   --muted: #0f0f0f;
   --muted-foreground: #787b86;
   /* Keep muted text gray */
 
-  --accent: #2a2e39;
+  --accent: #2e2e2e;
   /* Hover state */
   --accent-foreground: #ffffff;
 
   --destructive: #f23645;
   /* User Red */
-  --border: #2a2e39;
+  --border: #2e2e2e;
   /* Subtle borders */
-  --input: #0f0f0f;
-  --ring: #328ea6;
+  --input: #2e2e2e;
+  --ring: #2862ff;
 
   --sidebar: #0f0f0f;
   /* Sidebar panel */
   --sidebar-foreground: #ffffff;
-  --sidebar-primary: #328ea6;
+  --sidebar-primary: #2862ff;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #2a2e39;
+  --sidebar-accent: #2e2e2e;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #2a2e39;
-  --sidebar-ring: #328ea6;
+  --sidebar-border: #2e2e2e;
+  --sidebar-ring: #2862ff;
 
-  --chart-1: #328ea6;
+  --chart-1: #2862ff;
   /* Blue */
   --chart-2: #24a693;
   /* Green */
   --chart-3: #f23645;
   /* Red */
-  --chart-4: #7c3aed;
-  --chart-5: #ff9800;
+  --chart-4: #ef9005;
+  /* Orange */
+  --chart-5: #7c3aed;
 }
 
 @layer base {

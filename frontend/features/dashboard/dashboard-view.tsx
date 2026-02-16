@@ -32,29 +32,6 @@ export function DashboardView() {
                         {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                     </p>
                 </div>
-
-                <div className="flex items-center gap-2">
-                    {/* Search */}
-                    <button className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary border border-border text-muted-foreground text-xs hover:border-accent transition-colors">
-                        <Search className="h-3.5 w-3.5" />
-                        <span className="hidden sm:inline">Search</span>
-                        <kbd className="hidden lg:inline ml-2 px-1.5 py-0.5 rounded bg-border text-[9px] text-muted-foreground">⌘K</kbd>
-                    </button>
-
-                    {/* Notifications */}
-                    <button className="relative p-2 rounded-lg bg-secondary border border-border text-muted-foreground hover:text-foreground hover:border-accent transition-colors">
-                        <Bell className="h-4 w-4" />
-                        <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
-                    </button>
-
-                    {/* Profile */}
-                    <button className="flex items-center gap-2 p-2 rounded-lg bg-secondary border border-border text-muted-foreground hover:border-accent transition-colors">
-                        <div className="h-5 w-5 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-                            <UserIcon className="h-3 w-3 text-primary" />
-                        </div>
-                        <span className="hidden sm:inline text-xs text-foreground font-medium">{displayName}</span>
-                    </button>
-                </div>
             </div>
 
             {/* Bento Grid Layout */}

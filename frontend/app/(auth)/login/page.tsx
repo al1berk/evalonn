@@ -3,13 +3,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
 import { authService } from '@/services/auth.service'
 import { useAuthStore } from '@/store'
+import { Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
     const router = useRouter()
@@ -50,78 +50,54 @@ export default function LoginPage() {
         }
     }
 
-    const handleAppleLogin = async () => {
-        setError('')
-        setLoading(true)
-
-        try {
-            const { user } = await authService.loginWithApple()
-            login(user)
-            router.push('/')
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Apple login failed')
-        } finally {
-            setLoading(false)
-        }
-    }
-
     return (
-        <div className="relative flex min-h-screen items-center justify-center p-4">
-            {/* Background Image */}
-            <div
-                className="absolute inset-0 z-0"
-                style={{
-                    backgroundImage: 'url(/images/backgrounds/auth-bg.png)',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                }}
-            >
-                <div className="absolute inset-0 bg-black/40" />
+        <div className="relative flex min-h-screen items-center justify-center p-4 bg-background text-foreground overflow-hidden">
+            {/* Background Effects */}
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+                <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/20 rounded-full blur-[120px] opacity-20" />
+                <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-chart-2/20 rounded-full blur-[120px] opacity-20" />
             </div>
 
             <div className="relative z-10 w-full max-w-md space-y-6">
-                {/* Login Card */}
-                <Card className="border-slate-600/30 bg-slate-900/70 backdrop-blur-2xl p-8 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
-                    <div className="space-y-6">
-                        {/* Header */}
-                        <div className="text-center">
-                            <h1 className="text-2xl font-semibold text-white/95">
-                                Welcome back
-                            </h1>
-                            <p className="mt-2 text-sm text-slate-300">
-                                Log in to manage your portfolio
-                            </p>
-                        </div>
 
+                {/* Logo Area */}
+                <div className="flex flex-col items-center justify-center mb-8">
+                    <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-chart-4 flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
+                        <span className="text-white text-xl font-bold">E</span>
+                    </div>
+                    <h1 className="text-3xl font-bold tracking-tight">Welcome back</h1>
+                    <p className="text-muted-foreground mt-2 text-center">
+                        Enter your credentials to access the terminal
+                    </p>
+                </div>
+
+                {/* Login Card */}
+                <Card className="border-border bg-card/50 backdrop-blur-xl p-8 shadow-2xl">
+                    <div className="space-y-6">
                         {/* Form */}
                         <form onSubmit={handleSubmit} className="space-y-4">
                             {/* Email */}
                             <div className="space-y-2">
-                                <Label htmlFor="email" className="text-slate-200 text-sm font-medium">
-                                    Email address
-                                </Label>
+                                <Label htmlFor="email">Email</Label>
                                 <Input
                                     id="email"
                                     type="email"
-                                    placeholder="john@example.com"
+                                    placeholder="name@example.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     autoComplete="email"
                                     required
-                                    className="border-slate-500/30 bg-slate-800/30 backdrop-blur-sm text-white placeholder:text-slate-400 focus:border-blue-500/50 transition-colors"
+                                    className="bg-secondary/50 border-input focus:border-primary/50"
                                 />
                             </div>
 
                             {/* Password */}
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <Label htmlFor="password" className="text-slate-200 text-sm font-medium">
-                                        Password
-                                    </Label>
+                                    <Label htmlFor="password">Password</Label>
                                     <Link
                                         href="/forgot-password"
-                                        className="text-sm text-blue-500 hover:text-blue-400"
+                                        className="text-xs text-primary hover:text-primary/80 transition-colors"
                                     >
                                         Forgot password?
                                     </Link>
@@ -129,18 +105,18 @@ export default function LoginPage() {
                                 <Input
                                     id="password"
                                     type="password"
-                                    placeholder="Enter your password"
+                                    placeholder="••••••••"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     autoComplete="current-password"
                                     required
-                                    className="border-slate-500/30 bg-slate-800/30 backdrop-blur-sm text-white placeholder:text-slate-400 focus:border-blue-500/50 transition-colors"
+                                    className="bg-secondary/50 border-input focus:border-primary/50"
                                 />
                             </div>
 
                             {/* Error Message */}
                             {error && (
-                                <div className="rounded-md bg-red-500/10 p-3 text-sm text-red-400">
+                                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive border border-destructive/20">
                                     {error}
                                 </div>
                             )}
@@ -149,19 +125,20 @@ export default function LoginPage() {
                             <Button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full bg-blue-600 hover:bg-blue-700"
+                                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-10 transition-all"
                             >
-                                {loading ? 'Logging in...' : 'Log In'}
+                                {loading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
+                                {loading ? 'Authenticating...' : 'Sign In'}
                             </Button>
 
                             {/* Divider */}
-                            <div className="relative">
+                            <div className="relative my-6">
                                 <div className="absolute inset-0 flex items-center">
-                                    <div className="w-full border-t border-slate-500/30"></div>
+                                    <div className="w-full border-t border-border"></div>
                                 </div>
-                                <div className="relative flex justify-center text-sm">
-                                    <span className="bg-slate-900/70 px-3 text-slate-300 backdrop-blur-sm">
-                                        OR CONTINUE WITH
+                                <div className="relative flex justify-center text-xs uppercase">
+                                    <span className="bg-card px-2 text-muted-foreground">
+                                        Or continue with
                                     </span>
                                 </div>
                             </div>
@@ -172,9 +149,9 @@ export default function LoginPage() {
                                 variant="outline"
                                 onClick={handleGoogleLogin}
                                 disabled={loading}
-                                className="w-full border-slate-600 bg-transparent text-white hover:bg-slate-700"
+                                className="w-full bg-secondary/50 hover:bg-secondary border-border text-foreground h-10 transition-colors"
                             >
-                                <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
+                                <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                                     <path
                                         fill="currentColor"
                                         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -194,46 +171,28 @@ export default function LoginPage() {
                                 </svg>
                                 Google
                             </Button>
-
-                            {/* Apple OAuth - Requires Apple Developer Account */}
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={handleAppleLogin}
-                                disabled={true}
-                                className="w-full border-slate-600 bg-transparent text-white hover:bg-slate-700 opacity-50 cursor-not-allowed"
-                                title="Apple Sign-In requires Apple Developer configuration"
-                            >
-                                <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-                                </svg>
-                                Apple
-                            </Button>
                         </form>
 
                         {/* Signup Link */}
                         <div className="text-center text-sm">
-                            <span className="text-slate-400">Don't have an account? </span>
+                            <span className="text-muted-foreground">Don't have an account? </span>
                             <Link
                                 href="/signup"
-                                className="font-semibold text-blue-500 hover:text-blue-400"
+                                className="font-semibold text-primary hover:text-primary/80 transition-colors"
                             >
-                                Create an account
+                                Get Started
                             </Link>
                         </div>
                     </div>
                 </Card>
 
                 {/* Footer Links */}
-                <div className="flex justify-center space-x-6 text-xs text-slate-500">
-                    <Link href="/privacy" className="hover:text-slate-400">
+                <div className="flex justify-center space-x-6 text-xs text-muted-foreground">
+                    <Link href="/privacy" className="hover:text-foreground transition-colors">
                         Privacy Policy
                     </Link>
-                    <Link href="/terms" className="hover:text-slate-400">
+                    <Link href="/terms" className="hover:text-foreground transition-colors">
                         Terms of Service
-                    </Link>
-                    <Link href="/help" className="hover:text-slate-400">
-                        Help Center
                     </Link>
                 </div>
             </div>
