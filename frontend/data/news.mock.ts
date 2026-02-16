@@ -64,10 +64,10 @@ export const mockNews: NewsItem[] = [
 
 export const getCategoryColor = (category: NewsItem['category']): string => {
     const colors = {
-        market: 'bg-blue-500/10 text-blue-500',
-        company: 'bg-green-500/10 text-green-500',
-        economy: 'bg-yellow-500/10 text-yellow-500',
-        analysis: 'bg-purple-500/10 text-purple-500',
+        market: 'bg-primary/10 text-primary',
+        company: 'bg-chart-2/10 text-chart-2',
+        economy: 'bg-chart-5/10 text-chart-5',
+        analysis: 'bg-chart-4/10 text-chart-4',
     }
     return colors[category]
 }

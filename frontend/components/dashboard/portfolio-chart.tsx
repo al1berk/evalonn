@@ -11,6 +11,7 @@ import {
 import { usePortfolioChart } from '@/hooks/use-prices'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { TrendingUp } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 type Period = '1D' | '1W' | '1M'
 
@@ -96,11 +97,11 @@ export function PortfolioChart() {
             return {
                 label,
                 value: bar.c,
-                fullDate: date.toLocaleString('tr-TR', { 
-                    day: 'numeric', 
-                    month: 'long', 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
+                fullDate: date.toLocaleString('tr-TR', {
+                    day: 'numeric',
+                    month: 'long',
+                    hour: '2-digit',
+                    minute: '2-digit'
                 }),
             }
         })
@@ -108,10 +109,10 @@ export function PortfolioChart() {
         // Get display date from filtered data
         const chartDate = filtered[0]?.t
             ? new Date(filtered[0].t).toLocaleDateString('tr-TR', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-              })
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+            })
             : ''
 
         return { chartData, chartDate }
@@ -128,33 +129,34 @@ export function PortfolioChart() {
     const isPositive = change >= 0
 
     return (
-        <Card className="bg-gradient-to-br from-[#1a1f2e] to-[#151923] border-slate-800/50 hover:border-blue-500/30 transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <Card className="bg-card border-border hover:border-primary/30 transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border/50">
                 <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                        <TrendingUp className="h-5 w-5 text-blue-500" />
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <TrendingUp className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                        <CardTitle className="text-base font-medium text-white">
+                        <CardTitle className="text-base font-medium text-foreground">
                             Piyasa Görünümü
                         </CardTitle>
-                        <p className="text-xs text-slate-400 mt-0.5">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                             THYAO
                         </p>
                     </div>
                 </div>
 
                 {/* Period Tabs */}
-                <div className="flex gap-1 bg-slate-800/50 rounded-lg p-1">
+                <div className="flex gap-1 bg-muted rounded-lg p-1">
                     {(['1D', '1W', '1M'] as Period[]).map((p) => (
                         <button
                             key={p}
                             onClick={() => setPeriod(p)}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
+                            className={cn(
+                                "px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200",
                                 period === p
-                                    ? 'bg-blue-600 text-white'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-                            }`}
+                                    ? "bg-primary text-primary-foreground"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                            )}
                         >
                             {p}
                         </button>
@@ -162,15 +164,15 @@ export function PortfolioChart() {
                 </div>
             </CardHeader>
 
-            <CardContent>
+            <CardContent className="pt-4">
                 {/* Value Display */}
                 <div className="mb-4">
-                    <div className="text-2xl font-bold text-white">
+                    <div className="text-2xl font-bold text-foreground">
                         ₺{lastValue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                     </div>
-                    <div className={`text-sm font-medium ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                    <div className={cn("text-sm font-medium", isPositive ? "text-chart-2" : "text-destructive")}>
                         {isPositive ? '+' : ''}{change.toFixed(2)} ({isPositive ? '+' : ''}{changePercent.toFixed(2)}%)
-                        <span className="text-slate-400 font-normal ml-2">{periodLabels[period]}</span>
+                        <span className="text-muted-foreground font-normal ml-2">{periodLabels[period]}</span>
                     </div>
                 </div>
 
@@ -178,28 +180,28 @@ export function PortfolioChart() {
                 <div ref={containerRef} className="h-[200px] sm:h-[250px] w-full min-w-0">
                     {isLoading ? (
                         <div className="h-full flex items-center justify-center">
-                            <div className="animate-pulse text-slate-400">Yükleniyor...</div>
+                            <div className="animate-pulse text-muted-foreground">Yükleniyor...</div>
                         </div>
                     ) : error ? (
                         <div className="h-full flex items-center justify-center">
-                            <div className="text-red-400 text-sm">Veri yüklenemedi</div>
+                            <div className="text-destructive text-sm">Veri yüklenemedi</div>
                         </div>
                     ) : dimensions.width > 0 && dimensions.height > 0 ? (
-                        <AreaChart 
-                            data={chartData} 
-                            width={dimensions.width} 
+                        <AreaChart
+                            data={chartData}
+                            width={dimensions.width}
                             height={dimensions.height}
                         >
                             <defs>
                                 <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                                     <stop
                                         offset="5%"
-                                        stopColor={isPositive ? '#26A69A' : '#EF5350'}
+                                        stopColor={isPositive ? 'var(--chart-2)' : 'var(--chart-3)'}
                                         stopOpacity={0.3}
                                     />
                                     <stop
                                         offset="95%"
-                                        stopColor={isPositive ? '#26A69A' : '#EF5350'}
+                                        stopColor={isPositive ? 'var(--chart-2)' : 'var(--chart-3)'}
                                         stopOpacity={0}
                                     />
                                 </linearGradient>
@@ -208,7 +210,7 @@ export function PortfolioChart() {
                                 dataKey="label"
                                 axisLine={false}
                                 tickLine={false}
-                                tick={{ fill: '#64748b', fontSize: 10 }}
+                                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
                                 interval="preserveStartEnd"
                                 minTickGap={40}
                                 padding={{ left: 10, right: 10 }}
@@ -217,18 +219,18 @@ export function PortfolioChart() {
                                 domain={['dataMin - 1', 'dataMax + 1']}
                                 axisLine={false}
                                 tickLine={false}
-                                tick={{ fill: '#64748b', fontSize: 10 }}
+                                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
                                 width={50}
                                 tickFormatter={(value) => `₺${value.toFixed(0)}`}
                             />
                             <Tooltip
                                 contentStyle={{
-                                    backgroundColor: '#1a1f2e',
-                                    border: '1px solid #334155',
+                                    backgroundColor: 'hsl(var(--card))',
+                                    border: '1px solid hsl(var(--border))',
                                     borderRadius: '8px',
-                                    color: '#fff',
+                                    color: 'hsl(var(--foreground))',
                                 }}
-                                labelStyle={{ color: '#94a3b8' }}
+                                labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
                                 labelFormatter={(_, payload) => {
                                     if (payload && payload[0]?.payload?.fullDate) {
                                         return payload[0].payload.fullDate
@@ -243,14 +245,14 @@ export function PortfolioChart() {
                             <Area
                                 type="monotone"
                                 dataKey="value"
-                                stroke={isPositive ? '#26A69A' : '#EF5350'}
+                                stroke={isPositive ? 'var(--chart-2)' : 'var(--chart-3)'}
                                 strokeWidth={2}
                                 fill="url(#colorValue)"
                             />
                         </AreaChart>
                     ) : (
                         <div className="h-full flex items-center justify-center">
-                            <div className="animate-pulse text-slate-400">Yükleniyor...</div>
+                            <div className="animate-pulse text-muted-foreground">Yükleniyor...</div>
                         </div>
                     )}
                 </div>
