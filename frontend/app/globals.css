@@ -61,8 +61,8 @@
   --foreground: #ffffff;
   /* Pure White (Text/Buttons) */
 
-  --card: #0f0f0f;
-  /* Slightly lighter for depth */
+  --card: #000000;
+  /* Pure Black */
   --card-foreground: #ffffff;
 
   --popover: #0f0f0f;
