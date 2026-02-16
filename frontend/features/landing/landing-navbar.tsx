@@ -1,116 +1,91 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Search, Globe, ChevronDown, Menu, X } from 'lucide-react'
-
-const navLinks = [
-  { label: 'Products', href: '#features' },
-  { label: 'Community', href: '#community' },
-  { label: 'Markets', href: '#markets' },
-]
+import { Search, Menu, X } from 'lucide-react'
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
 
 export function LandingNavbar() {
-  const [scrolled, setScrolled] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
 
   return (
-    <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? 'bg-[#131722]/95 backdrop-blur-xl border-b border-[#2a2e39]/50 shadow-lg shadow-black/20'
-          : 'bg-transparent'
-      }`}
-    >
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          {/* Left: Logo */}
-          <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#2962ff] to-[#7c3aed] flex items-center justify-center">
-                <span className="text-white text-sm font-bold">E</span>
-              </div>
-              <span className="text-white text-xl font-bold tracking-tight">EVALON</span>
-            </Link>
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-transparent py-2">
+      <div className="max-w-[1400px] mx-auto px-4 lg:px-6 h-16 flex items-center justify-between">
 
-            {/* Desktop Search */}
-            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1e222d]/80 border border-[#2a2e39] text-[#787b86] text-sm hover:border-[#363a45] transition-colors cursor-pointer">
-              <Search className="h-4 w-4" />
-              <span>Search</span>
-              <kbd className="ml-4 px-1.5 py-0.5 rounded bg-[#2a2e39] text-[10px] text-[#787b86]">⌘K</kbd>
+        {/* Left Section: Logo & Search */}
+        <div className="flex items-center gap-6">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2962ff] to-[#0d47a1] flex items-center justify-center text-white font-bold">
+              E
             </div>
+            <span className="text-xl font-bold tracking-tight text-white hidden sm:block">
+              EVALON
+            </span>
+          </Link>
+
+          {/* Search Button (Desktop) - Moved to Left */}
+          <button className="hidden sm:flex items-center gap-3 px-4 py-2.5 rounded-full bg-[#1e222d] hover:bg-[#2a2e39] text-[#787b86] hover:text-[#d1d4dc] transition-all min-w-[200px] group text-left">
+            <Search className="w-5 h-5 group-hover:text-white transition-colors" />
+            <span className="text-base">Search</span>
+            <span className="ml-auto text-xs px-1.5 py-0.5 rounded border border-[#2a2e39] text-[#787b86]">⌘K</span>
+          </button>
+
+          {/* Desktop Nav Links - Moved Next to Search */}
+          <div className="hidden lg:flex items-center gap-6 text-[15px] font-medium text-[#d1d4dc] ml-2">
+            <Link href="#products" className="hover:text-white transition-colors">Products</Link>
+            <Link href="#community" className="hover:text-white transition-colors">Community</Link>
+            <Link href="#pricing" className="hover:text-white transition-colors">Pricing</Link>
+            <Link href="#features" className="hover:text-white transition-colors">Features</Link>
+            <Link href="#learn" className="hover:text-white transition-colors">Learn</Link>
           </div>
+        </div>
 
-          {/* Center: Nav Links */}
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className="px-4 py-2 text-sm font-medium text-[#d1d4dc] hover:text-white transition-colors rounded-lg hover:bg-white/5"
-              >
-                {link.label}
-              </a>
-            ))}
-            <button className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-[#d1d4dc] hover:text-white transition-colors rounded-lg hover:bg-white/5">
-              More
-              <ChevronDown className="h-3.5 w-3.5" />
-            </button>
-          </div>
+        {/* Right Section: Auth & Actions */}
+        <div className="flex items-center gap-4">
 
-          {/* Right: Actions */}
-          <div className="flex items-center gap-3">
-            <button className="hidden sm:flex items-center gap-1.5 px-3 py-2 text-sm text-[#d1d4dc] hover:text-white transition-colors rounded-lg hover:bg-white/5">
-              <Globe className="h-4 w-4" />
-              <span>EN</span>
-            </button>
+          {/* Search Icon (Mobile) */}
+          <button className="sm:hidden text-white">
+            <Search className="w-5 h-5" />
+          </button>
 
+          {/* Auth Buttons */}
+          <div className="flex items-center gap-4">
             <Link
               href="/login"
-              className="hidden sm:inline-flex px-5 py-2 text-sm font-semibold text-white bg-[#2962ff] rounded-full hover:bg-[#1e53e5] transition-all duration-200 shadow-lg shadow-[#2962ff]/20 hover:shadow-[#2962ff]/30"
+              className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full hover:bg-[#2a2e39] transition-colors text-white"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+            </Link>
+            <Link
+              href="/pricing"
+              className="inline-flex items-center justify-center px-6 py-2.5 text-[15px] font-bold text-white bg-[#2962ff] rounded-full hover:bg-[#1e53e5] transition-all"
             >
               Get started
             </Link>
-
-            {/* Mobile menu toggle */}
-            <button
-              className="md:hidden p-2 text-[#d1d4dc] hover:text-white"
-              onClick={() => setMobileOpen(!mobileOpen)}
-            >
-              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
           </div>
+
+          {/* Mobile Menu Toggle */}
+          <button
+            className="lg:hidden text-white ml-2"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
       </div>
 
-      {/* Mobile menu */}
-      {mobileOpen && (
-        <div className="md:hidden bg-[#131722]/98 backdrop-blur-xl border-t border-[#2a2e39]/50">
-          <div className="px-4 py-4 space-y-1">
-            {navLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className="block px-4 py-3 text-sm font-medium text-[#d1d4dc] hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-                onClick={() => setMobileOpen(false)}
-              >
-                {link.label}
-              </a>
-            ))}
-            <Link
-              href="/login"
-              className="block mt-3 px-4 py-3 text-sm font-semibold text-white bg-[#2962ff] rounded-lg text-center hover:bg-[#1e53e5] transition-colors"
-              onClick={() => setMobileOpen(false)}
-            >
-              Get started
-            </Link>
-          </div>
+      {/* Mobile Menu Dropdown */}
+      {isMenuOpen && (
+        <div className="lg:hidden absolute top-20 left-4 right-4 bg-[#131722]/95 backdrop-blur-xl border border-[#2a2e39] rounded-2xl p-4 flex flex-col gap-4 shadow-2xl">
+          <Link href="#products" className="text-[#d1d4dc] hover:text-white font-medium py-2 px-2 hover:bg-white/5 rounded-lg transition-colors">Products</Link>
+          <Link href="#community" className="text-[#d1d4dc] hover:text-white font-medium py-2 px-2 hover:bg-white/5 rounded-lg transition-colors">Community</Link>
+          <Link href="#pricing" className="text-[#d1d4dc] hover:text-white font-medium py-2 px-2 hover:bg-white/5 rounded-lg transition-colors">Pricing</Link>
+          <Link href="#features" className="text-[#d1d4dc] hover:text-white font-medium py-2 px-2 hover:bg-white/5 rounded-lg transition-colors">Features</Link>
+          <Link href="#learn" className="text-[#d1d4dc] hover:text-white font-medium py-2 px-2 hover:bg-white/5 rounded-lg transition-colors">Learn</Link>
+          <div className="h-px bg-[#2a2e39] my-1" />
+          <Link href="/login" className="text-white font-semibold py-2 px-2 hover:bg-white/5 rounded-lg transition-colors">Log In</Link>
         </div>
       )}
     </nav>
