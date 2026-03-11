@@ -1,54 +1,47 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Globe, TrendingUp, TrendingDown, Bitcoin, DollarSign, Activity, MoreHorizontal } from 'lucide-react';
+import { Globe, TrendingUp, TrendingDown, Bitcoin, DollarSign, Activity, MoreHorizontal, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TICKERS_RAW, PriceBar } from '@/types/market';
+import { pricesService } from '@/services/prices';
+import { useRouter } from 'next/navigation';
 
-// Mock Data Enriched
-const marketData = {
-    bist: [
-        { ticker: 'THYAO', name: 'Turk Hava Yollari', price: 285.50, changePct: 1.5, changeVal: 4.20, high: 288.00, low: 282.50, vol: '1.2B', rating: 'Strong Buy' },
-        { ticker: 'ASELS', name: 'Aselsan', price: 55.20, changePct: -0.8, changeVal: -0.44, high: 56.10, low: 54.80, vol: '800M', rating: 'Buy' },
-        { ticker: 'KCHOL', name: 'Koc Holding', price: 180.10, changePct: 0.5, changeVal: 0.90, high: 181.50, low: 179.00, vol: '500M', rating: 'Neutral' },
-        { ticker: 'AKBNK', name: 'Akbank', price: 42.30, changePct: 2.1, changeVal: 0.88, high: 42.50, low: 41.20, vol: '950M', rating: 'Strong Buy' },
-        { ticker: 'GARAN', name: 'Garanti BBVA', price: 68.90, changePct: 1.8, changeVal: 1.22, high: 69.10, low: 67.50, vol: '1.1B', rating: 'Buy' },
-        { ticker: 'EREGL', name: 'Eregli Demir Celik', price: 45.60, changePct: -1.2, changeVal: -0.55, high: 46.20, low: 45.10, vol: '600M', rating: 'Sell' },
-        { ticker: 'TUPRS', name: 'Tupras', price: 165.40, changePct: 0.3, changeVal: 0.50, high: 166.00, low: 164.50, vol: '450M', rating: 'Neutral' },
-        { ticker: 'SAHOL', name: 'Sabanci Holding', price: 82.10, changePct: 1.1, changeVal: 0.90, high: 82.50, low: 81.00, vol: '300M', rating: 'Buy' },
-    ],
+// Keep mock data for other tabs for now
+const mockMarketData = {
     nasdaq: [
         { ticker: 'NVDA', name: 'NVIDIA Corp.', price: 850.12, changePct: 2.5, changeVal: 20.50, high: 855.00, low: 835.00, vol: '45M', rating: 'Strong Buy' },
         { ticker: 'AAPL', name: 'Apple Inc.', price: 175.50, changePct: -0.5, changeVal: -0.88, high: 176.80, low: 174.90, vol: '55M', rating: 'Neutral' },
         { ticker: 'MSFT', name: 'Microsoft Corp.', price: 405.20, changePct: 0.8, changeVal: 3.20, high: 407.00, low: 403.50, vol: '25M', rating: 'Buy' },
         { ticker: 'TSLA', name: 'Tesla Inc.', price: 180.40, changePct: -1.2, changeVal: -2.15, high: 183.00, low: 178.50, vol: '80M', rating: 'Sell' },
-        { ticker: 'AMD', name: 'AMD', price: 178.45, changePct: 1.5, changeVal: 2.65, high: 180.00, low: 176.20, vol: '30M', rating: 'Buy' },
-        { ticker: 'AMZN', name: 'Amazon.com', price: 174.30, changePct: 0.9, changeVal: 1.55, high: 175.00, low: 173.10, vol: '35M', rating: 'Buy' },
-        { ticker: 'GOOGL', name: 'Alphabet Inc.', price: 140.50, changePct: -0.2, changeVal: -0.28, high: 141.20, low: 139.80, vol: '22M', rating: 'Neutral' },
-        { ticker: 'META', name: 'Meta Platforms', price: 495.60, changePct: 1.8, changeVal: 8.75, high: 498.00, low: 490.50, vol: '18M', rating: 'Strong Buy' },
     ],
     crypto: [
-        { ticker: 'BTC/USD', name: 'Bitcoin', price: 65200.00, changePct: 2.1, changeVal: 1350.00, high: 65800.00, low: 63500.00, vol: '45B', rating: 'Strong Buy' },
-        { ticker: 'ETH/USD', name: 'Ethereum', price: 3450.00, changePct: 1.8, changeVal: 62.00, high: 3500.00, low: 3380.00, vol: '20B', rating: 'Buy' },
-        { ticker: 'SOL/USD', name: 'Solana', price: 145.20, changePct: 5.4, changeVal: 7.80, high: 148.00, low: 138.50, vol: '5B', rating: 'Strong Buy' },
-        { ticker: 'BNB/USD', name: 'Binance Coin', price: 580.10, changePct: 0.5, changeVal: 2.90, high: 585.00, low: 575.00, vol: '2B', rating: 'Neutral' },
-        { ticker: 'XRP/USD', name: 'Ripple', price: 0.62, changePct: -1.2, changeVal: -0.007, high: 0.63, low: 0.61, vol: '1.5B', rating: 'Sell' },
-        { ticker: 'ADA/USD', name: 'Cardano', price: 0.58, changePct: -0.5, changeVal: -0.003, high: 0.59, low: 0.57, vol: '800M', rating: 'Neutral' },
-        { ticker: 'DOGE/USD', name: 'Dogecoin', price: 0.14, changePct: 8.5, changeVal: 0.012, high: 0.15, low: 0.13, vol: '3B', rating: 'Strong Buy' },
-        { ticker: 'DOT/USD', name: 'Polkadot', price: 8.50, changePct: 0.2, changeVal: 0.02, high: 8.60, low: 8.40, vol: '400M', rating: 'Neutral' },
+        { ticker: 'BTCUSDT', name: 'Bitcoin', price: 65200.00, changePct: 2.1, changeVal: 1350.00, high: 65800.00, low: 63500.00, vol: '45B', rating: 'Strong Buy' },
+        { ticker: 'ETHUSDT', name: 'Ethereum', price: 3450.00, changePct: 1.8, changeVal: 62.00, high: 3500.00, low: 3380.00, vol: '20B', rating: 'Buy' },
     ],
     forex: [
-        { ticker: 'EUR/USD', name: 'Euro / US Dollar', price: 1.0850, changePct: 0.1, changeVal: 0.0011, high: 1.0870, low: 1.0830, vol: '-', rating: 'Neutral' },
-        { ticker: 'USD/JPY', name: 'US Dollar / Yen', price: 151.20, changePct: 0.2, changeVal: 0.30, high: 151.50, low: 150.80, vol: '-', rating: 'Buy' },
-        { ticker: 'GBP/USD', name: 'Pound / US Dollar', price: 1.2650, changePct: -0.1, changeVal: -0.0012, high: 1.2680, low: 1.2630, vol: '-', rating: 'Sell' },
-        { ticker: 'USD/TRY', name: 'US Dollar / Lira', price: 32.10, changePct: 0.05, changeVal: 0.016, high: 32.15, low: 32.05, vol: '-', rating: 'Strong Buy' },
-        { ticker: 'XAU/USD', name: 'Gold Spot', price: 2150.00, changePct: 0.8, changeVal: 17.00, high: 2160.00, low: 2140.00, vol: '-', rating: 'Buy' },
-        { ticker: 'XAG/USD', name: 'Silver Spot', price: 24.50, changePct: 1.2, changeVal: 0.29, high: 24.80, low: 24.20, vol: '-', rating: 'Buy' },
-        { ticker: 'USD/CHF', name: 'US Dollar / Swiss Franc', price: 0.8850, changePct: -0.3, changeVal: -0.0026, high: 0.8880, low: 0.8830, vol: '-', rating: 'Sell' },
+        { ticker: 'EURUSD', name: 'Euro / US Dollar', price: 1.0850, changePct: 0.1, changeVal: 0.0011, high: 1.0870, low: 1.0830, vol: '-', rating: 'Neutral' },
+        { ticker: 'USDJPY', name: 'US Dollar / Yen', price: 151.20, changePct: 0.2, changeVal: 0.30, high: 151.50, low: 150.80, vol: '-', rating: 'Buy' },
     ]
 };
+
+function formatVolume(vol: number) {
+    if (vol >= 1000000000) {
+        return (vol / 1000000000).toFixed(2) + 'B';
+    }
+    if (vol >= 1000000) {
+        return (vol / 1000000).toFixed(2) + 'M';
+    }
+    if (vol >= 1000) {
+        return (vol / 1000).toFixed(2) + 'K';
+    }
+    return vol.toString();
+}
 
 function RatingBadge({ rating }: { rating: string }) {
     let colorClass = "bg-secondary text-muted-foreground";
@@ -64,53 +57,84 @@ function RatingBadge({ rating }: { rating: string }) {
     );
 }
 
-function MarketTable({ data }: { data: any[] }) {
+// Added `isInteractive` prop to optionally disable linking
+function MarketTable({ data, isLoading, isInteractive = false }: { data: any[], isLoading?: boolean, isInteractive?: boolean }) {
+    const router = useRouter();
+    if (isLoading) {
+        return (
+            <Card className="bg-card border-none rounded-none shadow-none overflow-hidden flex justify-center items-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </Card>
+        );
+    }
+
     return (
         <Card className="bg-card border-none rounded-none shadow-none overflow-hidden">
-            <Table>
-                <TableHeader className="bg-background hover:bg-background">
-                    <TableRow className="border-border hover:bg-background">
-                        <TableHead className="w-[300px] text-xs font-semibold uppercase tracking-wider text-muted-foreground pl-4">Ticker</TableHead>
-                        <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Price</TableHead>
-                        <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Change %</TableHead>
-                        <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Change</TableHead>
-                        <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">High</TableHead>
-                        <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Low</TableHead>
-                        <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Volume</TableHead>
-                        <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground pr-4">Rating</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {data.map((item, i) => (
-                        <TableRow key={i} className="border-border hover:bg-muted/50 transition-colors group cursor-pointer">
-                            <TableCell className="font-medium pl-4 py-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center text-[10px] font-bold text-muted-foreground">
-                                        {item.ticker[0]}
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{item.ticker}</span>
-                                        <span className="text-xs text-muted-foreground">{item.name}</span>
-                                    </div>
-                                </div>
-                            </TableCell>
-                            <TableCell className="text-right font-mono text-sm">{item.price.toFixed(2)}</TableCell>
-                            <TableCell className={cn("text-right font-medium text-sm", item.changePct >= 0 ? "text-chart-2" : "text-destructive")}>
-                                {item.changePct > 0 ? '+' : ''}{item.changePct}%
-                            </TableCell>
-                            <TableCell className={cn("text-right font-medium text-sm", item.changeVal >= 0 ? "text-chart-2" : "text-destructive")}>
-                                {item.changeVal > 0 ? '+' : ''}{item.changeVal.toFixed(2)}
-                            </TableCell>
-                            <TableCell className="text-right font-mono text-sm text-muted-foreground">{item.high.toFixed(2)}</TableCell>
-                            <TableCell className="text-right font-mono text-sm text-muted-foreground">{item.low.toFixed(2)}</TableCell>
-                            <TableCell className="text-right text-sm text-muted-foreground">{item.vol}</TableCell>
-                            <TableCell className="text-right pr-4">
-                                <RatingBadge rating={item.rating} />
-                            </TableCell>
+            <div className="overflow-x-auto">
+                <Table>
+                    <TableHeader className="bg-background hover:bg-background">
+                        <TableRow className="border-border hover:bg-background">
+                            <TableHead className="w-[300px] text-xs font-semibold uppercase tracking-wider text-muted-foreground pl-4">Ticker</TableHead>
+                            <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Price</TableHead>
+                            <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Change %</TableHead>
+                            <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Change</TableHead>
+                            <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">High</TableHead>
+                            <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Low</TableHead>
+                            <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Volume</TableHead>
+                            <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground pr-4">Rating</TableHead>
                         </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+                    </TableHeader>
+                    <TableBody>
+                        {data.map((item, i) => {
+                            const RowContent = (
+                                <>
+                                    <TableCell className="font-medium pl-4 py-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                                                {item.ticker ? item.ticker[0] : '?'}
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{item.ticker}</span>
+                                                <span className="text-xs text-muted-foreground">{item.name || 'Stock'}</span>
+                                            </div>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-right font-mono text-sm">{item.price?.toFixed(2) || '-'}</TableCell>
+                                    <TableCell className={cn("text-right font-medium text-sm", item.changePct >= 0 ? "text-chart-2" : "text-destructive")}>
+                                        {item.changePct !== undefined ? `${item.changePct > 0 ? '+' : ''}${item.changePct}%` : '-'}
+                                    </TableCell>
+                                    <TableCell className={cn("text-right font-medium text-sm", item.changeVal >= 0 ? "text-chart-2" : "text-destructive")}>
+                                        {item.changeVal !== undefined ? `${item.changeVal > 0 ? '+' : ''}${item.changeVal.toFixed(2)}` : '-'}
+                                    </TableCell>
+                                    <TableCell className="text-right font-mono text-sm text-muted-foreground">{item.high?.toFixed(2) || '-'}</TableCell>
+                                    <TableCell className="text-right font-mono text-sm text-muted-foreground">{item.low?.toFixed(2) || '-'}</TableCell>
+                                    <TableCell className="text-right text-sm text-muted-foreground">{typeof item.vol === 'number' ? formatVolume(item.vol) : item.vol || '-'}</TableCell>
+                                    <TableCell className="text-right pr-4">
+                                        <RatingBadge rating={item.rating || 'Neutral'} />
+                                    </TableCell>
+                                </>
+                            );
+
+                            return (
+                                <TableRow
+                                    key={i}
+                                    className={cn("border-border hover:bg-muted/50 transition-colors group relative", isInteractive && "cursor-pointer")}
+                                    onClick={() => isInteractive && router.push(`/markets/${item.ticker}`)}
+                                >
+                                    {RowContent}
+                                </TableRow>
+                            );
+                        })}
+                        {data.length === 0 && !isLoading && (
+                            <TableRow>
+                                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                                    No data available
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
         </Card>
     );
 }
@@ -138,6 +162,77 @@ function MarketSummaryCard({ title, icon, color, data }: { title: string, icon: 
 }
 
 export function MarketsView() {
+    const [bistData, setBistData] = useState<any[]>([]);
+    const [isLoadingBist, setIsLoadingBist] = useState(true);
+
+    useEffect(() => {
+        let isMounted = true;
+        const fetchBistData = async () => {
+            setIsLoadingBist(true);
+            try {
+                // Fetch all tickers in the background. Note: this will make multiple concurrent requests, but is fine for this small list.
+                const tickersToDisplay = TICKERS_RAW;
+
+                const fetchPromises = tickersToDisplay.map(async (ticker) => {
+                    const res = await pricesService.getLatestPriceWithChange(ticker);
+                    if (res && res.current) {
+                        const currentPrice = res.current.c;
+                        const previousPrice = res.previous ? res.previous.c : currentPrice;
+                        const changeVal = currentPrice - previousPrice;
+                        const changePct = previousPrice !== 0 ? (changeVal / previousPrice) * 100 : 0;
+
+                        // Determine simple rating based on change for visual effect
+                        let rating = 'Neutral';
+                        if (changePct > 2) rating = 'Strong Buy';
+                        else if (changePct > 0.5) rating = 'Buy';
+                        else if (changePct < -2) rating = 'Strong Sell';
+                        else if (changePct < -0.5) rating = 'Sell';
+
+                        return {
+                            ticker: ticker,
+                            name: ticker, // don't have company names in TICKERS_RAW, use ticker for now
+                            price: currentPrice,
+                            changePct: parseFloat(changePct.toFixed(2)),
+                            changeVal: parseFloat(changeVal.toFixed(2)),
+                            high: res.current.h,
+                            low: res.current.l,
+                            vol: res.current.v,
+                            rating: rating
+                        };
+                    }
+                    return null;
+                });
+
+                const results = await Promise.allSettled(fetchPromises);
+                const validData = results
+                    .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && r.value !== null)
+                    .map(r => r.value);
+
+                if (isMounted) {
+                    setBistData(validData);
+                }
+            } catch (error) {
+                console.error("Error fetching market data:", error);
+            } finally {
+                if (isMounted) {
+                    setIsLoadingBist(false);
+                }
+            }
+        };
+
+        fetchBistData();
+        return () => { isMounted = false; };
+    }, []);
+
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) {
+        return <div className="min-h-screen bg-background" />;
+    }
+
     return (
         <div className="flex flex-col w-full h-full bg-background">
             {/* Header Section */}
@@ -215,19 +310,20 @@ export function MarketsView() {
                     </div>
 
                     <TabsContent value="bist" className="mt-0 animate-in fade-in duration-500">
-                        <MarketTable data={marketData.bist} />
+                        <MarketTable data={bistData} isLoading={isLoadingBist} isInteractive={true} />
                     </TabsContent>
                     <TabsContent value="nasdaq" className="mt-0 animate-in fade-in duration-500">
-                        <MarketTable data={marketData.nasdaq} />
+                        <MarketTable data={mockMarketData.nasdaq} isInteractive={true} />
                     </TabsContent>
                     <TabsContent value="crypto" className="mt-0 animate-in fade-in duration-500">
-                        <MarketTable data={marketData.crypto} />
+                        <MarketTable data={mockMarketData.crypto} isInteractive={true} />
                     </TabsContent>
                     <TabsContent value="forex" className="mt-0 animate-in fade-in duration-500">
-                        <MarketTable data={marketData.forex} />
+                        <MarketTable data={mockMarketData.forex} isInteractive={true} />
                     </TabsContent>
                 </Tabs>
             </div>
         </div>
     );
 }
+

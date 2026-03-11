@@ -5,7 +5,14 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: false, // Vercel Image Optimization kullanılacak
   },
-  /* config options here */
+  async rewrites() {
+    return [
+      {
+        source: '/api/v1/prices',
+        destination: 'https://evalon-mu.vercel.app/v1/prices',
+      },
+    ]
+  },
 };
 
 export default nextConfig;
