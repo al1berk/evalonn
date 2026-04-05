@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Search, Bell, Menu, ChevronDown, Monitor, BarChart2, GitBranch, Cpu, Globe, List, Activity, Users, FileText, Newspaper } from 'lucide-react'
@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/use-auth-store'
 import { authService } from '@/services/auth.service'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { BIST_AVAILABLE, TICKER_NAMES } from '@/config/markets'
 
 // Menu Structure
 const menuItems = [
@@ -43,6 +44,130 @@ const menuItems = [
   }
 ]
 
+// Pre-build search index
+const SEARCH_INDEX = BIST_AVAILABLE.map(ticker => ({
+  ticker,
+  name: TICKER_NAMES[ticker] || ticker,
+  searchStr: `${ticker} ${(TICKER_NAMES[ticker] || '').toLowerCase()}`,
+}))
+
+function TickerSearch() {
+  const router = useRouter()
+  const [query, setQuery] = useState('')
+  const [isOpen, setIsOpen] = useState(false)
+  const [selectedIndex, setSelectedIndex] = useState(0)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const results = useMemo(() => {
+    if (!query.trim()) return []
+    const q = query.toLowerCase()
+    return SEARCH_INDEX
+      .filter(item => item.searchStr.includes(q))
+      .slice(0, 8)
+  }, [query])
+
+  const handleSelect = useCallback((ticker: string) => {
+    router.push(`/markets/${ticker}`)
+    setQuery('')
+    setIsOpen(false)
+    inputRef.current?.blur()
+  }, [router])
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setSelectedIndex(i => Math.min(i + 1, results.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setSelectedIndex(i => Math.max(i - 1, 0))
+    } else if (e.key === 'Enter' && results[selectedIndex]) {
+      e.preventDefault()
+      handleSelect(results[selectedIndex].ticker)
+    } else if (e.key === 'Escape') {
+      setIsOpen(false)
+      inputRef.current?.blur()
+    }
+  }
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  // Keyboard shortcut: Cmd+K / Ctrl+K
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        inputRef.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [])
+
+  // Reset selected index when results change
+  useEffect(() => { setSelectedIndex(0) }, [results])
+
+  return (
+    <div ref={containerRef} className="relative w-[260px] hidden md:block">
+      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-muted-foreground">
+        <Search className="h-4 w-4" />
+      </div>
+      <input
+        ref={inputRef}
+        type="text"
+        value={query}
+        onChange={(e) => { setQuery(e.target.value); setIsOpen(true) }}
+        onFocus={() => setIsOpen(true)}
+        onKeyDown={handleKeyDown}
+        placeholder="Search ticker or company..."
+        className="w-full h-9 rounded-full bg-secondary hover:bg-secondary/80 focus:bg-secondary/80 focus:outline-none focus:ring-1 focus:ring-primary/50 transition-colors px-3 pl-10 pr-12 text-sm text-foreground placeholder:text-muted-foreground"
+      />
+      <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground/60 bg-background/50 px-1.5 py-0.5 rounded border border-border/50 pointer-events-none">
+        ⌘K
+      </kbd>
+
+      {/* Results Dropdown */}
+      {isOpen && results.length > 0 && (
+        <div className="absolute top-[calc(100%+4px)] left-0 w-full bg-card border border-border shadow-2xl rounded-xl py-1 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+          {results.map((item, i) => (
+            <div
+              key={item.ticker}
+              onClick={() => handleSelect(item.ticker)}
+              onMouseEnter={() => setSelectedIndex(i)}
+              className={cn(
+                "flex items-center justify-between px-3 py-2 cursor-pointer transition-colors",
+                i === selectedIndex ? "bg-muted/50" : "hover:bg-muted/30"
+              )}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="text-xs font-bold text-foreground w-14 flex-shrink-0">{item.ticker}</span>
+                <span className="text-xs text-muted-foreground truncate">{item.name}</span>
+              </div>
+              <span className="text-[10px] text-muted-foreground/60 flex-shrink-0">BIST</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* No results */}
+      {isOpen && query.trim().length > 0 && results.length === 0 && (
+        <div className="absolute top-[calc(100%+4px)] left-0 w-full bg-card border border-border shadow-2xl rounded-xl py-3 z-50 animate-in fade-in">
+          <p className="text-xs text-muted-foreground text-center">No results found</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function Navbar() {
   const pathname = usePathname()
   const router = useRouter()
@@ -73,15 +198,8 @@ export function Navbar() {
             </Link>
           </div>
 
-          {/* Search Bar - Moved to Left */}
-          <div className="relative w-[240px] hidden md:flex items-center">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-muted-foreground">
-              <Search className="h-4 w-4" />
-            </div>
-            <div className="w-full h-9 rounded-full bg-secondary hover:bg-secondary/80 transition-colors flex items-center px-3 pl-10 text-sm text-muted-foreground cursor-text">
-              <span className="truncate">Search (⌘K)</span>
-            </div>
-          </div>
+          {/* Ticker Search */}
+          <TickerSearch />
 
           {/* Navigation Links - Desktop */}
           <div className="hidden lg:flex items-center gap-1 h-full">

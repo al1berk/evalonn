@@ -1,102 +1,100 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ArrowLeft, Loader2, Maximize2, RefreshCw } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { pricesService } from '@/services/prices';
-import { PriceBar, Timeframe } from '@/types/market';
+import { usePrices } from '@/hooks/use-prices';
 import { cn } from '@/lib/utils';
+import type { Timeframe } from '@/types';
 
 interface TickerViewProps {
     ticker: string;
 }
 
-// Timeframes ordered by recommendation (daily first as default)
+// Timeframes with optimized limits
 const TIMEFRAMES: { label: string; value: Timeframe; limit: number }[] = [
-    { label: '1D', value: '1d', limit: 365 },   // 1 year of daily data
-    { label: '1H', value: '1h', limit: 168 },   // 1 week of hourly data
-    { label: '5M', value: '5m', limit: 288 },   // 1 day of 5-min data
-    { label: '1M', value: '1m', limit: 480 },   // 8 hours of 1-min data
+    { label: '1M', value: '1m', limit: 300 },   // ~1 trading day
+    { label: '5M', value: '5m', limit: 150 },   // ~3 trading days
+    { label: '1H', value: '1h', limit: 100 },   // ~12.5 trading days
+    { label: '1D', value: '1d', limit: 50 },    // ~2 months of daily data
     { label: '1W', value: '1w', limit: 52 },    // 1 year of weekly data
 ];
 
+const getTimeframeLimit = (tf: Timeframe): number => {
+    const config = TIMEFRAMES.find(t => t.value === tf);
+    return config?.limit || 100;
+};
+
+const getPeriodLabel = (tf: Timeframe): string => {
+    switch (tf) {
+        case '1d': case '1w': return 'Period';
+        case '1h': return 'Weekly';
+        case '5m': case '1m': return 'Daily';
+        default: return 'Period';
+    }
+};
+
 export function TickerView({ ticker }: TickerViewProps) {
     const [timeframe, setTimeframe] = useState<Timeframe>('1d');
-    const [data, setData] = useState<PriceBar[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [mounted, setMounted] = useState(false);
 
-    useEffect(() => {
-        setMounted(true);
-    }, []);
+    // Header data: always fetch daily (last 2 bars) for consistent price/change display
+    const { data: dailyData } = usePrices(ticker, '1d', 2);
 
-    // Get limit for current timeframe
-    const getTimeframeLimit = (tf: Timeframe): number => {
-        const config = TIMEFRAMES.find(t => t.value === tf);
-        return config?.limit || 100;
-    };
+    // Chart data: fetch based on selected timeframe
+    const { data: chartPriceData, isLoading, error, refetch } = usePrices(
+        ticker,
+        timeframe,
+        getTimeframeLimit(timeframe)
+    );
 
-    // Fetch data whenever timeframe changes
-    useEffect(() => {
-        let isMounted = true;
-        const fetchData = async () => {
-            setIsLoading(true);
-            setError(null);
-            try {
-                // Use optimized limit based on timeframe
-                const limit = getTimeframeLimit(timeframe);
-                const res = await pricesService.getPrices({
-                    ticker,
-                    timeframe,
-                    limit
-                });
-                if (isMounted) {
-                    setData(res.data || []);
-                }
-            } catch (err) {
-                console.error("Failed to fetch ticker data", err);
-                if (isMounted) {
-                    setError("Failed to load chart data. Please try again.");
-                }
-            } finally {
-                if (isMounted) {
-                    setIsLoading(false);
-                }
-            }
-        };
+    const data = chartPriceData?.data || [];
 
-        fetchData();
-        return () => { isMounted = false; };
-    }, [ticker, timeframe]);
+    // Header stats: always based on daily data (independent of timeframe)
+    const headerStats = useMemo(() => {
+        const dailyBars = dailyData?.data || [];
+        if (dailyBars.length === 0) return null;
 
-    // Calculate summary statistics from the current data view
-    const stats = useMemo(() => {
+        const currentBar = dailyBars[dailyBars.length - 1];
+        const previousBar = dailyBars.length > 1 ? dailyBars[dailyBars.length - 2] : null;
+
+        const price = currentBar.c;
+        const change = previousBar ? currentBar.c - previousBar.c : 0;
+        const changePct = previousBar && previousBar.c !== 0 ? (change / previousBar.c) * 100 : 0;
+        const isPositive = change >= 0;
+
+        // Check staleness
+        const lastBarDate = new Date(currentBar.t);
+        const daysSinceUpdate = Math.floor((Date.now() - lastBarDate.getTime()) / (1000 * 60 * 60 * 24));
+        const isStale = daysSinceUpdate > 5;
+
+        return { price, change, changePct, isPositive, lastBarDate, isStale, daysSinceUpdate };
+    }, [dailyData]);
+
+    // Chart stats: period high/low/vol from chart data
+    const chartStats = useMemo(() => {
         if (!data || data.length === 0) return null;
 
-        const current = data[data.length - 1];
-        const previous = data.length > 1 ? data[data.length - 2] : current;
-
-        const changeVal = current.c - previous.c;
-        const changePct = previous.c !== 0 ? (changeVal / previous.c) * 100 : 0;
-
-        // Find high/low of the current fetched period
         const periodHigh = Math.max(...data.map(d => d.h));
         const periodLow = Math.min(...data.map(d => d.l));
+        const lastBar = data[data.length - 1];
 
-        return {
-            currentPrice: current.c,
-            changeVal,
-            changePct,
-            high: periodHigh,
-            low: periodLow,
-            vol: current.v,
-            isPositive: changeVal >= 0
-        };
+        return { high: periodHigh, low: periodLow, vol: lastBar.v };
+    }, [data]);
+
+    // Dynamic Y-axis domain with 5% padding
+    const yDomain = useMemo((): [number, number] | ['auto', 'auto'] => {
+        if (!data || data.length === 0) return ['auto', 'auto'];
+        const prices = data.flatMap(d => [d.c, d.h, d.l]);
+        const min = Math.min(...prices);
+        const max = Math.max(...prices);
+        const padding = (max - min) * 0.05;
+        return [
+            Math.floor((min - padding) * 100) / 100,
+            Math.ceil((max + padding) * 100) / 100
+        ];
     }, [data]);
 
     // Format X axis labels based on timeframe
@@ -120,9 +118,7 @@ export function TickerView({ ticker }: TickerViewProps) {
         return date.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
     };
 
-    if (!mounted) {
-        return <div className="min-h-screen bg-background" />;
-    }
+    const periodLabel = getPeriodLabel(timeframe);
 
     return (
         <div className="flex flex-col w-full min-h-screen bg-background text-foreground animate-in fade-in duration-500">
@@ -141,13 +137,18 @@ export function TickerView({ ticker }: TickerViewProps) {
                     </div>
                 </div>
 
-                {stats && (
+                {headerStats && (
                     <div className="ml-auto flex items-center gap-6">
                         <div className="flex flex-col items-end">
-                            <span className="text-2xl font-bold tracking-tight font-mono">{stats.currentPrice.toFixed(2)}</span>
-                            <span className={cn("text-sm font-medium flex items-center gap-1", stats.isPositive ? "text-chart-2" : "text-destructive")}>
-                                {stats.isPositive ? '+' : ''}{stats.changeVal.toFixed(2)} ({stats.isPositive ? '+' : ''}{stats.changePct.toFixed(2)}%)
+                            <span className="text-2xl font-bold tracking-tight font-mono">{headerStats.price.toFixed(2)}</span>
+                            <span className={cn("text-sm font-medium flex items-center gap-1", headerStats.isPositive ? "text-chart-2" : "text-destructive")}>
+                                {headerStats.isPositive ? '+' : ''}{headerStats.change.toFixed(2)} ({headerStats.isPositive ? '+' : ''}{headerStats.changePct.toFixed(2)}%)
                             </span>
+                            {headerStats.isStale && (
+                                <span className="text-xs text-amber-500 mt-1">
+                                    Data: {headerStats.lastBarDate.toLocaleDateString('tr-TR')} ({headerStats.daysSinceUpdate} days ago)
+                                </span>
+                            )}
                         </div>
                     </div>
                 )}
@@ -157,22 +158,32 @@ export function TickerView({ ticker }: TickerViewProps) {
                 {/* Stats Row */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <Card className="p-4 bg-card border-none rounded-xl shadow-sm flex flex-col gap-1">
-                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Period High</span>
-                        <span className="text-lg font-mono">{stats?.high?.toFixed(2) || '-'}</span>
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{periodLabel} High</span>
+                        <span className="text-lg font-mono">{chartStats?.high?.toFixed(2) || '-'}</span>
                     </Card>
                     <Card className="p-4 bg-card border-none rounded-xl shadow-sm flex flex-col gap-1">
-                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Period Low</span>
-                        <span className="text-lg font-mono">{stats?.low?.toFixed(2) || '-'}</span>
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{periodLabel} Low</span>
+                        <span className="text-lg font-mono">{chartStats?.low?.toFixed(2) || '-'}</span>
                     </Card>
                     <Card className="p-4 bg-card border-none rounded-xl shadow-sm flex flex-col gap-1">
                         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Volume (Last Bar)</span>
-                        <span className="text-lg">{stats?.vol?.toLocaleString() || '-'}</span>
+                        <span className="text-lg">{chartStats?.vol?.toLocaleString() || '-'}</span>
                     </Card>
                     <Card className="p-4 bg-card border-none rounded-xl shadow-sm flex flex-col gap-1">
                         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Timeframe</span>
                         <span className="text-lg uppercase">{timeframe}</span>
                     </Card>
                 </div>
+
+                {/* Stale Data Warning */}
+                {headerStats?.isStale && (
+                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 flex items-center gap-2">
+                        <span className="text-amber-500">&#9888;</span>
+                        <span className="text-sm text-amber-200">
+                            Bu timeframe icin guncel veri yok. Son veri tarihi: {headerStats.lastBarDate.toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                        </span>
+                    </div>
+                )}
 
                 {/* Chart Section */}
                 <Card className="flex-1 p-1 bg-card border-border rounded-xl shadow-sm min-h-[500px] flex flex-col relative overflow-hidden">
@@ -194,7 +205,7 @@ export function TickerView({ ticker }: TickerViewProps) {
 
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={() => setTimeframe(timeframe)} // force re-fetch by triggering effect manually if needed, or just visual
+                                onClick={() => refetch()}
                                 className="p-2 rounded-md hover:bg-secondary text-muted-foreground transition-colors"
                                 title="Refresh Data"
                             >
@@ -217,7 +228,7 @@ export function TickerView({ ticker }: TickerViewProps) {
                             </div>
                         ) : error ? (
                             <div className="absolute inset-0 flex items-center justify-center">
-                                <span className="text-sm text-destructive">{error}</span>
+                                <span className="text-sm text-destructive">Failed to load chart data. Please try again.</span>
                             </div>
                         ) : data.length === 0 ? (
                             <div className="absolute inset-0 flex items-center justify-center">
@@ -248,7 +259,7 @@ export function TickerView({ ticker }: TickerViewProps) {
                                         minTickGap={30}
                                     />
                                     <YAxis
-                                        domain={['auto', 'auto']}
+                                        domain={yDomain}
                                         stroke="#888888"
                                         fontSize={12}
                                         tickLine={false}
@@ -274,10 +285,10 @@ export function TickerView({ ticker }: TickerViewProps) {
                                     <Area
                                         type="monotone"
                                         dataKey="c"
-                                        stroke={stats?.isPositive ? "#22c55e" : "#ef4444"}
+                                        stroke={headerStats?.isPositive ? "#22c55e" : "#ef4444"}
                                         strokeWidth={2}
                                         fillOpacity={1}
-                                        fill={stats?.isPositive ? "url(#colorPricePos)" : "url(#colorPriceNeg)"}
+                                        fill={headerStats?.isPositive ? "url(#colorPricePos)" : "url(#colorPriceNeg)"}
                                         animationDuration={500}
                                     />
                                 </AreaChart>

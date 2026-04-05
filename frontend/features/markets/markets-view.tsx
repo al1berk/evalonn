@@ -1,16 +1,14 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
+import { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Globe, TrendingUp, TrendingDown, Bitcoin, DollarSign, Activity, MoreHorizontal, Loader2, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { TrendingUp, Bitcoin, DollarSign, Activity, MoreHorizontal, Loader2, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { PriceBar } from '@/types/market';
-import { MARKET_TICKERS, AVAILABLE_TICKERS, TICKER_NAMES } from '@/config/markets';
-import { pricesService } from '@/services/prices';
+import { MARKET_TICKERS, TICKER_NAMES } from '@/config/markets';
+import { useMarketMovers } from '@/hooks/use-dashboard-data';
 import { useRouter } from 'next/navigation';
 
 // Sorting types
@@ -270,128 +268,42 @@ function MarketSummaryCard({ title, icon, color, data }: { title: string, icon: 
             </div>
             <div className="space-y-1">
                 <h3 className="text-base font-medium text-muted-foreground">{title}</h3>
-                <p className="text-2xl font-bold tracking-tight">{data.value.toLocaleString()}</p>
+                <p className="text-2xl font-bold tracking-tight" suppressHydrationWarning>{data.value.toLocaleString('tr-TR')}</p>
             </div>
         </Card>
     )
 }
 
 export function MarketsView() {
-    const [bistData, setBistData] = useState<any[]>([]);
-    const [isLoadingBist, setIsLoadingBist] = useState(true);
+    // Reuse the same React Query cache as dashboard (market-movers key)
+    const { data: moversData, isLoading: isLoadingBist } = useMarketMovers();
 
-    useEffect(() => {
-        let isMounted = true;
-        
-        const fetchBistData = async () => {
-            setIsLoadingBist(true);
-            try {
-                // Use batch endpoint for fast loading
-                const tickers = AVAILABLE_TICKERS.join(',');
-                const response = await fetch(`/api/prices/batch?tickers=${tickers}&timeframe=1d&limit=2`);
-                
-                if (!response.ok) {
-                    throw new Error('Failed to fetch batch prices');
-                }
-                
-                const result = await response.json();
-                
-                // Create a map of successful data
-                const dataMap = new Map<string, any>();
-                result.data.forEach((item: any) => {
-                    dataMap.set(item.ticker, item);
-                });
+    // Transform market movers data into table format
+    const bistData = useMemo(() => {
+        if (!moversData?.all) return [];
 
-                // Process ALL tickers from AVAILABLE_TICKERS to ensure consistent list
-                const processedData = AVAILABLE_TICKERS.map((ticker) => {
-                    const item = dataMap.get(ticker);
-                    
-                    if (item && item.current) {
-                        const currentPrice = item.current.c || 0;
-                        const previousPrice = item.previous?.c || currentPrice;
-                        const changeVal = currentPrice - previousPrice;
-                        const changePct = previousPrice !== 0 ? (changeVal / previousPrice) * 100 : 0;
+        return moversData.all.map((item) => {
+            const changePct = item.changePercent;
+            let rating = 'Neutral';
+            if (changePct > 2) rating = 'Strong Buy';
+            else if (changePct > 0.5) rating = 'Buy';
+            else if (changePct < -2) rating = 'Strong Sell';
+            else if (changePct < -0.5) rating = 'Sell';
 
-                        let rating = 'Neutral';
-                        if (changePct > 2) rating = 'Strong Buy';
-                        else if (changePct > 0.5) rating = 'Buy';
-                        else if (changePct < -2) rating = 'Strong Sell';
-                        else if (changePct < -0.5) rating = 'Sell';
-
-                        return {
-                            ticker: ticker,
-                            name: TICKER_NAMES[ticker] || ticker,
-                            price: currentPrice,
-                            changePct: parseFloat(changePct.toFixed(2)),
-                            changeVal: parseFloat(changeVal.toFixed(2)),
-                            high: item.current.h || 0,
-                            low: item.current.l || 0,
-                            vol: item.current.v || 0,
-                            rating: rating,
-                            hasData: true
-                        };
-                    } else {
-                        // No data available - show placeholder
-                        return {
-                            ticker: ticker,
-                            name: TICKER_NAMES[ticker] || ticker,
-                            price: null,
-                            changePct: null,
-                            changeVal: null,
-                            high: null,
-                            low: null,
-                            vol: null,
-                            rating: 'Neutral',
-                            hasData: false
-                        };
-                    }
-                });
-
-                // Sort: items with data first, then by ticker name
-                processedData.sort((a, b) => {
-                    if (a.hasData && !b.hasData) return -1;
-                    if (!a.hasData && b.hasData) return 1;
-                    return a.ticker.localeCompare(b.ticker);
-                });
-
-                if (isMounted) {
-                    setBistData(processedData);
-                    setIsLoadingBist(false);
-                }
-            } catch (error) {
-                console.error("Error fetching market data:", error);
-                if (isMounted) {
-                    // On error, show all tickers with no data
-                    const fallbackData = AVAILABLE_TICKERS.map((ticker) => ({
-                        ticker,
-                        name: TICKER_NAMES[ticker] || ticker,
-                        price: null,
-                        changePct: null,
-                        changeVal: null,
-                        high: null,
-                        low: null,
-                        vol: null,
-                        rating: 'Neutral',
-                        hasData: false
-                    }));
-                    setBistData(fallbackData);
-                    setIsLoadingBist(false);
-                }
-            }
-        };
-
-        fetchBistData();
-        return () => { isMounted = false; };
-    }, []);
-
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => {
-        setMounted(true);
-    }, []);
-
-    if (!mounted) {
-        return <div className="min-h-screen bg-background" />;
-    }
+            return {
+                ticker: item.ticker,
+                name: item.name,
+                price: item.price,
+                changePct: parseFloat(changePct.toFixed(2)),
+                changeVal: parseFloat(item.change.toFixed(2)),
+                high: null, // batch endpoint only returns current/previous bars
+                low: null,
+                vol: null,
+                rating,
+                hasData: item.price > 0
+            };
+        });
+    }, [moversData]);
 
     return (
         <div className="flex flex-col w-full h-full bg-background">

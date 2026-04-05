@@ -74,21 +74,24 @@ export const pricesService = {
      */
     async getLatestPriceWithChange(ticker: string): Promise<{ current: PriceBar, previous: PriceBar | null } | null> {
         try {
-            // Fetch only the last 10 days to get recent data efficiently
-            // The API sorts by time, so we take the last 2 items
+            // Fetch 10 bars from 14 days ago to ensure we get the most recent data
             const now = new Date();
-            const tenDaysAgo = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
+            const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
             
             const res = await this.getPrices({
                 ticker,
                 timeframe: '1d',
-                start: tenDaysAgo.toISOString().split('T')[0],
-                limit: 10
+                limit: 10,
+                start: twoWeeksAgo.toISOString().split('T')[0]
             });
 
             if (res.data && res.data.length > 0) {
-                const current = res.data[res.data.length - 1];
-                const previous = res.data.length > 1 ? res.data[res.data.length - 2] : null;
+                // Sort by time to ensure correct order, then take last 2
+                const sorted = [...res.data].sort((a, b) => 
+                    new Date(a.t).getTime() - new Date(b.t).getTime()
+                );
+                const current = sorted[sorted.length - 1];
+                const previous = sorted.length > 1 ? sorted[sorted.length - 2] : null;
                 return { current, previous };
             }
             return null;

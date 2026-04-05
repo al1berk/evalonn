@@ -47,11 +47,24 @@ export interface PriceBar {
     v: number   // volume
 }
 
+export type Timeframe = '1m' | '5m' | '15m' | '1h' | '1d' | '1w' | '1M'
+
 export interface PriceResponse {
     ticker: string
     timeframe: string
     rows: number
     data: PriceBar[]
+}
+
+// Alias for backward compatibility
+export type PricesResponse = PriceResponse
+
+export interface FetchPricesParams {
+    ticker: string
+    timeframe: Timeframe
+    limit?: number
+    start?: string  // YYYY-MM-DDTHH:MM:SS
+    end?: string    // YYYY-MM-DDTHH:MM:SS
 }
 
 // Watchlist item for dashboard

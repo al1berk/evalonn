@@ -11,6 +11,7 @@ import {
     Timeframe,
 } from '@/services/price.service'
 import { WatchlistItem } from '@/types'
+import { isMarketCurrentlyOpen } from '@/hooks/use-dashboard-data'
 
 /**
  * Hook to fetch price data for a single ticker
@@ -20,7 +21,7 @@ export function usePrices(ticker: string, timeframe: Timeframe, limit: number = 
         queryKey: ['prices', ticker, timeframe, limit],
         queryFn: () => fetchPrices({ ticker, timeframe, limit }),
         staleTime: 1000 * 60, // 1 minute
-        refetchInterval: 1000 * 60 * 5, // Refetch every 5 minutes
+        refetchInterval: () => isMarketCurrentlyOpen() ? 1000 * 60 * 5 : false, // 5 min when open, stop when closed
     })
 }
 
@@ -75,6 +76,6 @@ export function useWatchlist() {
             })
         },
         staleTime: 1000 * 30, // 30 seconds for more frequent updates
-        refetchInterval: 1000 * 60, // Refetch every 1 minute
+        refetchInterval: () => isMarketCurrentlyOpen() ? 1000 * 60 : false, // 1 min when open, stop when closed
     })
 }

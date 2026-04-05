@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { PriceBar } from '@/types'
 
 const EVALON_API_URL = process.env.NEXT_PUBLIC_EVALON_API_URL || 'https://evalon-mu.vercel.app'
 
@@ -47,15 +48,6 @@ async function fetchWithTimeout(url: string, timeoutMs: number = 10000): Promise
 
 // Helper to delay execution
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
-
-interface PriceBar {
-    t: string
-    o: number
-    h: number
-    l: number
-    c: number
-    v: number
-}
 
 interface TickerResult {
     ticker: string
@@ -111,13 +103,17 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ ...cached.data, cached: true, stale: false })
     }
 
-    // Calculate start date for recent data (optimized for limit=2)
+    // Calculate start date and fetch limit
+    // The API returns data FROM the start date up to limit
+    // We need to fetch more data than requested to ensure we get the most recent bars
     const now = new Date()
     const limitNum = parseInt(limit)
-    // For small limits, we need fewer days back
-    const daysBack = timeframe === '1d' 
-        ? Math.max(5, limitNum) // At least 5 days for daily (covers weekends)
-        : Math.max(2, Math.ceil(limitNum / 8)) // ~8 hours per trading day
+    
+    // For getting recent prices, always fetch at least 10 bars from 14 days ago
+    // This handles weekends, holidays, and missing data
+    const fetchLimit = Math.max(10, limitNum)
+    const daysBack = 14 // 2 weeks ensures we cover weekends and holidays
+    
     const startDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000)
     const start = startDate.toISOString().split('T')[0]
 
@@ -125,7 +121,8 @@ export async function GET(request: NextRequest) {
     async function fetchTicker(ticker: string, retries = 2): Promise<TickerResult> {
         for (let attempt = 0; attempt <= retries; attempt++) {
             try {
-                const url = `${EVALON_API_URL}/v1/prices?ticker=${ticker}&timeframe=${timeframe}&limit=${limit}&start=${start}`
+                // Use higher fetchLimit to ensure we get recent data, then take the last bars
+                const url = `${EVALON_API_URL}/v1/prices?ticker=${ticker}&timeframe=${timeframe}&limit=${fetchLimit}&start=${start}`
                 const response = await fetchWithTimeout(url, 15000) // 15 second timeout
                 
                 if (!response.ok) {
@@ -208,7 +205,7 @@ export async function GET(request: NextRequest) {
         failedTickers: failed.filter(f => !mergedData.find(m => m.ticker === f.ticker)).map(d => d.ticker)
     }
 
-    // Cache if we have at least 70% success (disabled for now)
+    // Cache if we have at least 70% success
     const successRate = mergedData.length / tickers.length
     if (CACHE_ENABLED && successRate >= 0.7) {
         setCache(cacheKey, response)

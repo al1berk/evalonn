@@ -8,28 +8,29 @@
 // BIST (Borsa Istanbul)
 // ============================================================================
 
-// All BIST tickers available in the Evalon API (118 verified)
+// All BIST tickers available in the Evalon API (122 verified)
 export const BIST_AVAILABLE = [
-    'AEFES', 'AGHOL', 'AKBNK', 'AKSA', 'AKSEN', 'ALARK', 'ALTNY', 'ARCLK',
-    'ASELS', 'ASTOR', 'BALSU', 'BIMAS', 'BRSAN', 'BRYAT', 'BSOKE', 'BTCIM',
-    'CANTE', 'CCOLA', 'CWENE', 'DAPGM', 'DOAS', 'DOHOL', 'DSTKF', 'ECILC',
-    'EFOR', 'EGEEN', 'EKGYO', 'ENERY', 'ENJSA', 'ENKAI', 'EREGL', 'EUPWR',
-    'FENER', 'FROTO', 'GARAN', 'GENIL', 'GESAN', 'GLRMK', 'GRSEL', 'GRTHO',
-    'GSRAY', 'GUBRF', 'HALKB', 'HEKTS', 'IZENR', 'KCAER', 'KCHOL', 'KLRHO',
-    'KONTR', 'KRDMD', 'KTLEV', 'KUYAS', 'MAGEN', 'MAVI', 'MGROS', 'MIATK',
-    'MPARK', 'OBAMS', 'ODAS', 'OTKAR', 'OYAKC', 'PASEU', 'PATEK', 'PETKM',
-    'PGSUS', 'QUAGR', 'RALYH', 'REEDR', 'SASA', 'SISE', 'SKBNK', 'SOKM',
-    'TABGD', 'TAVHL', 'TCELL', 'THYAO', 'TKFEN', 'TOASO', 'TRALT', 'TRENJ',
-    'TRMET', 'TSKB', 'TSPOR', 'TTKOM', 'TTRAK', 'TUKAS', 'TUPRS', 'TUREX',
-    'TURSG', 'ULKER', 'VAKBN', 'VESTL', 'YEOTK', 'YKBNK', 'ZOREN', 'AKCNS',
-    'AKENR', 'AKFGY', 'ALGYO', 'ALFAS', 'AHGAZ', 'AGROT', 'ARDYZ', 'BAGFS',
-    'BIZIM', 'CLEBI', 'DEVA', 'GWIND', 'KAREL', 'LOGO', 'NETAS', 'PETUN',
-    'PNSUT', 'SELEC', 'TMSN', 'VESBE', 'ZEDUR', 'IZFAS'
+    'AEFES', 'AGHOL', 'AKBNK', 'AKSA', 'AKSEN', 'ALARK', 'ALTNY', 'ANSGR',
+    'ARCLK', 'ASELS', 'ASTOR', 'BALSU', 'BIMAS', 'BRSAN', 'BRYAT', 'BSOKE',
+    'BTCIM', 'CANTE', 'CCOLA', 'CIMSA', 'CWENE', 'DAPGM', 'DOAS', 'DOHOL',
+    'DSTKF', 'ECILC', 'EFOR', 'EGEEN', 'EKGYO', 'ENERY', 'ENJSA', 'ENKAI',
+    'EREGL', 'EUPWR', 'FENER', 'FROTO', 'GARAN', 'GENIL', 'GESAN', 'GLRMK',
+    'GRSEL', 'GRTHO', 'GSRAY', 'GUBRF', 'HALKB', 'HEKTS', 'ISCTR', 'IZENR',
+    'KCAER', 'KCHOL', 'KLRHO', 'KONTR', 'KRDMD', 'KTLEV', 'KUYAS', 'MAGEN',
+    'MAVI', 'MGROS', 'MIATK', 'MPARK', 'OBAMS', 'ODAS', 'OTKAR', 'OYAKC',
+    'PASEU', 'PATEK', 'PETKM', 'PGSUS', 'QUAGR', 'RALYH', 'REEDR', 'SAHOL',
+    'SASA', 'SISE', 'SKBNK', 'SOKM', 'TABGD', 'TAVHL', 'TCELL', 'THYAO',
+    'TKFEN', 'TOASO', 'TRALT', 'TRENJ', 'TRMET', 'TSKB', 'TSPOR', 'TTKOM',
+    'TTRAK', 'TUKAS', 'TUPRS', 'TUREX', 'TURSG', 'ULKER', 'VAKBN', 'VESTL',
+    'YEOTK', 'YKBNK', 'ZOREN', 'AKCNS', 'AKENR', 'AKFGY', 'ALGYO', 'ALFAS',
+    'AHGAZ', 'AGROT', 'ARDYZ', 'BAGFS', 'BIZIM', 'CLEBI', 'DEVA', 'GWIND',
+    'KAREL', 'LOGO', 'NETAS', 'PETUN', 'PNSUT', 'SELEC', 'TMSN', 'VESBE',
+    'ZEDUR', 'IZFAS'
 ] as const;
 
 // Tickers NOT available in the API (for reference)
 export const BIST_UNAVAILABLE = [
-    'ANSGR', 'CIMSA', 'ISCTR', 'ISMEN', 'SAHOL', 'ISGYO'
+    'ISMEN', 'ISGYO'
 ] as const;
 
 // Popular BIST tickers for quick access (BIST 30 level)

@@ -12,7 +12,7 @@ import {
 import { TrendingUp, TrendingDown, Maximize2, Minus, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { usePrices } from '@/hooks/use-prices'
-import { Timeframe } from '@/services/price.service'
+import type { Timeframe } from '@/types'
 
 type Period = '1D' | '1W' | '1M' | '3M'
 
@@ -39,20 +39,28 @@ interface ChartDataPoint {
 
 export function MainChart({ ticker = 'THYAO', name = 'Turkish Airlines' }: MainChartProps) {
   const [period, setPeriod] = useState<Period>('1D')
-  
+
   const config = PERIOD_CONFIG[period]
   const { data: priceData, isLoading, error } = usePrices(ticker, config.timeframe, config.limit)
-  
+
+  // Always fetch daily data for consistent header price/change
+  const { data: dailyPriceData } = usePrices(ticker, '1d', 2)
+
   const rawData = priceData?.data || []
 
   const chartData: ChartDataPoint[] = useMemo(() => {
     return rawData.map((bar) => {
       const date = new Date(bar.t)
-      const config = PERIOD_CONFIG[period]
       let timeStr: string
-      if (config.timeframe === '5m' || config.timeframe === '1h') {
+      if (period === '1D') {
+        // Intraday: only show time
         timeStr = date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+      } else if (period === '1W') {
+        // Weekly with hourly data: show date + time to avoid repeating hours
+        timeStr = date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) + ' ' +
+          date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
       } else {
+        // Monthly/quarterly: show date
         timeStr = date.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })
       }
       return {
@@ -66,13 +74,30 @@ export function MainChart({ ticker = 'THYAO', name = 'Turkish Airlines' }: MainC
     })
   }, [rawData, period])
 
-  const firstPrice = chartData[0]?.price ?? 0
   const lastPrice = chartData[chartData.length - 1]?.price ?? 0
   const lastBar = chartData[chartData.length - 1]
-  const change = lastPrice - firstPrice
-  const changePercent = firstPrice > 0 ? (change / firstPrice) * 100 : 0
+
+  // Daily change from dedicated daily query (independent of chart period)
+  const dailyBars = dailyPriceData?.data || []
+  const todayClose = dailyBars.length > 0 ? dailyBars[dailyBars.length - 1].c : lastPrice
+  const yesterdayClose = dailyBars.length > 1 ? dailyBars[dailyBars.length - 2].c : todayClose
+  const change = todayClose - yesterdayClose
+  const changePercent = yesterdayClose > 0 ? (change / yesterdayClose) * 100 : 0
   const isPositive = change >= 0
   const color = isPositive ? '#089981' : '#f23645'
+
+  // Dynamic Y-axis domain with 5% padding
+  const yDomain = useMemo(() => {
+    if (chartData.length === 0) return ['auto', 'auto']
+    const prices = chartData.map(d => d.price)
+    const min = Math.min(...prices)
+    const max = Math.max(...prices)
+    const padding = (max - min) * 0.05
+    return [
+      Math.floor((min - padding) * 100) / 100,
+      Math.ceil((max + padding) * 100) / 100
+    ]
+  }, [chartData])
 
   return (
     <div className="rounded-xl bg-card border border-border overflow-hidden h-full flex flex-col">
@@ -131,7 +156,7 @@ export function MainChart({ ticker = 'THYAO', name = 'Turkish Airlines' }: MainC
       </div>
 
       {/* Chart Area */}
-      <div className="flex-1 min-h-[280px] px-2 relative">
+      <div className="flex-1 min-h-[340px] px-2 relative">
         {isLoading ? (
           <div className="absolute inset-0 flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -145,7 +170,7 @@ export function MainChart({ ticker = 'THYAO', name = 'Turkish Airlines' }: MainC
             <span className="text-sm text-muted-foreground">No data available</span>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minHeight={1} minWidth={1}>
             <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
               <defs>
                 <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
@@ -160,10 +185,10 @@ export function MainChart({ ticker = 'THYAO', name = 'Turkish Airlines' }: MainC
                 tickLine={false}
                 tick={{ fill: '#787b86', fontSize: 10 }}
                 interval="preserveStartEnd"
-                minTickGap={60}
+                minTickGap={period === '1W' ? 80 : 60}
               />
               <YAxis
-                domain={['dataMin - 20', 'dataMax + 20']}
+                domain={yDomain as any}
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: '#787b86', fontSize: 10 }}

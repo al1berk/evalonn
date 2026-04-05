@@ -1,10 +1,19 @@
 'use client'
 
-import { tickerTapeData } from '@/data/dashboard.mock'
+import { useRouter } from 'next/navigation'
+import { useDashboardWatchlist, useMarketMovers } from '@/hooks/use-dashboard-data'
 import { cn } from '@/lib/utils'
+import type { DashboardTicker } from '@/hooks/use-dashboard-data'
 
 export function TickerTape() {
-  const items = tickerTapeData
+  const router = useRouter()
+  const { data: moversData } = useMarketMovers()
+
+  const items: DashboardTicker[] = moversData?.all || []
+
+  if (items.length === 0) {
+    return <div className="w-full h-[38px] bg-background border-b border-border" />
+  }
 
   return (
     <div className="w-full h-[38px] bg-background border-b border-border overflow-hidden flex-shrink-0">
@@ -15,16 +24,17 @@ export function TickerTape() {
             const isPositive = item.changePercent >= 0
             return (
               <div
-                key={`${item.symbol}-${i}`}
+                key={`${item.ticker}-${i}`}
                 className="flex items-center gap-2 px-4 h-full border-r border-border/50 cursor-pointer hover:bg-muted/50 transition-colors flex-shrink-0"
+                onClick={() => router.push(`/markets/${item.ticker}`)}
               >
                 <span className="text-xs font-semibold text-foreground whitespace-nowrap">
-                  {item.symbol}
+                  {item.ticker}
                 </span>
                 <span className="text-xs text-foreground font-medium whitespace-nowrap">
-                  {item.price.toLocaleString('en-US', {
-                    minimumFractionDigits: item.price < 10 ? 4 : 2,
-                    maximumFractionDigits: item.price < 10 ? 4 : 2,
+                  {item.price.toLocaleString('tr-TR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
                   })}
                 </span>
                 <span

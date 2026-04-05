@@ -23,6 +23,21 @@ interface BatchResponse {
     }>
 }
 
+/**
+ * Pure function to check if BIST market is currently open.
+ * BIST hours: Monday-Friday, 10:00-18:00 (Turkey Time, UTC+3)
+ * Used by hooks and refetchInterval callbacks.
+ */
+export function isMarketCurrentlyOpen(): boolean {
+    const now = new Date()
+    const turkeyTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Istanbul' }))
+    const day = turkeyTime.getDay()
+    const currentMinutes = turkeyTime.getHours() * 60 + turkeyTime.getMinutes()
+    const isWeekday = day >= 1 && day <= 5
+    const isDuringHours = currentMinutes >= 600 && currentMinutes < 1080 // 10:00-18:00
+    return isWeekday && isDuringHours
+}
+
 async function fetchDashboardData(tickers: string[]): Promise<DashboardTicker[]> {
     const tickersParam = tickers.join(',')
     const url = `/api/prices/batch?tickers=${tickersParam}&timeframe=1d&limit=2` // Optimized: only last 2 bars needed
@@ -62,7 +77,7 @@ export function useDashboardWatchlist() {
         queryKey: ['dashboard-watchlist'],
         queryFn: () => fetchDashboardData(watchlistTickers),
         staleTime: 1000 * 30, // 30 seconds
-        refetchInterval: 1000 * 60, // 1 minute
+        refetchInterval: () => isMarketCurrentlyOpen() ? 1000 * 60 : false, // 1 min when open, stop when closed
     })
 }
 
@@ -89,7 +104,7 @@ export function useMarketMovers() {
             }
         },
         staleTime: 1000 * 60, // 1 minute
-        refetchInterval: 1000 * 60 * 2, // 2 minutes
+        refetchInterval: () => isMarketCurrentlyOpen() ? 1000 * 60 * 2 : false, // 2 min when open, stop when closed
     })
 }
 
