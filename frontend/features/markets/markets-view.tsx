@@ -9,26 +9,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Globe, TrendingUp, TrendingDown, Bitcoin, DollarSign, Activity, MoreHorizontal, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PriceBar } from '@/types/market';
+import { MARKET_TICKERS } from '@/config/markets';
 import { pricesService } from '@/services/prices';
 import { AVAILABLE_TICKERS, TICKER_NAMES } from '@/config/tickers';
 import { useRouter } from 'next/navigation';
 
-// Keep mock data for other tabs for now
+// Keep mock data format but use tickers from config
 const mockMarketData = {
-    nasdaq: [
-        { ticker: 'NVDA', name: 'NVIDIA Corp.', price: 850.12, changePct: 2.5, changeVal: 20.50, high: 855.00, low: 835.00, vol: '45M', rating: 'Strong Buy' },
-        { ticker: 'AAPL', name: 'Apple Inc.', price: 175.50, changePct: -0.5, changeVal: -0.88, high: 176.80, low: 174.90, vol: '55M', rating: 'Neutral' },
-        { ticker: 'MSFT', name: 'Microsoft Corp.', price: 405.20, changePct: 0.8, changeVal: 3.20, high: 407.00, low: 403.50, vol: '25M', rating: 'Buy' },
-        { ticker: 'TSLA', name: 'Tesla Inc.', price: 180.40, changePct: -1.2, changeVal: -2.15, high: 183.00, low: 178.50, vol: '80M', rating: 'Sell' },
-    ],
-    crypto: [
-        { ticker: 'BTCUSDT', name: 'Bitcoin', price: 65200.00, changePct: 2.1, changeVal: 1350.00, high: 65800.00, low: 63500.00, vol: '45B', rating: 'Strong Buy' },
-        { ticker: 'ETHUSDT', name: 'Ethereum', price: 3450.00, changePct: 1.8, changeVal: 62.00, high: 3500.00, low: 3380.00, vol: '20B', rating: 'Buy' },
-    ],
-    forex: [
-        { ticker: 'EURUSD', name: 'Euro / US Dollar', price: 1.0850, changePct: 0.1, changeVal: 0.0011, high: 1.0870, low: 1.0830, vol: '-', rating: 'Neutral' },
-        { ticker: 'USDJPY', name: 'US Dollar / Yen', price: 151.20, changePct: 0.2, changeVal: 0.30, high: 151.50, low: 150.80, vol: '-', rating: 'Buy' },
-    ]
+    nasdaq: MARKET_TICKERS.NASDAQ.map(t => ({ ...t, price: 850.12, changePct: 2.5, changeVal: 20.50, high: 855.00, low: 835.00, vol: '45M', rating: 'Strong Buy' })),
+    crypto: MARKET_TICKERS.CRYPTO.map(t => ({ ...t, price: 65200.00, changePct: 2.1, changeVal: 1350.00, high: 65800.00, low: 63500.00, vol: '45B', rating: 'Strong Buy' })),
+    forex: MARKET_TICKERS.FOREX.map(t => ({ ...t, price: 1.0850, changePct: 0.1, changeVal: 0.0011, high: 1.0870, low: 1.0830, vol: '-', rating: 'Neutral' }))
 };
 
 function formatVolume(vol: number) {
