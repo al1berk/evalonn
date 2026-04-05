@@ -15,14 +15,13 @@ interface TickerViewProps {
     ticker: string;
 }
 
-const TIMEFRAMES: { label: string; value: Timeframe }[] = [
-    { label: '1M', value: '1m' },
-    { label: '5M', value: '5m' },
-    { label: '15M', value: '15m' },
-    { label: '1H', value: '1h' },
-    { label: '1D', value: '1d' },
-    { label: '1W', value: '1w' },
-    { label: '1Mo', value: '1M' },
+// Timeframes ordered by recommendation (daily first as default)
+const TIMEFRAMES: { label: string; value: Timeframe; limit: number }[] = [
+    { label: '1D', value: '1d', limit: 365 },   // 1 year of daily data
+    { label: '1H', value: '1h', limit: 168 },   // 1 week of hourly data
+    { label: '5M', value: '5m', limit: 288 },   // 1 day of 5-min data
+    { label: '1M', value: '1m', limit: 480 },   // 8 hours of 1-min data
+    { label: '1W', value: '1w', limit: 52 },    // 1 year of weekly data
 ];
 
 export function TickerView({ ticker }: TickerViewProps) {
@@ -36,6 +35,12 @@ export function TickerView({ ticker }: TickerViewProps) {
         setMounted(true);
     }, []);
 
+    // Get limit for current timeframe
+    const getTimeframeLimit = (tf: Timeframe): number => {
+        const config = TIMEFRAMES.find(t => t.value === tf);
+        return config?.limit || 100;
+    };
+
     // Fetch data whenever timeframe changes
     useEffect(() => {
         let isMounted = true;
@@ -43,11 +48,12 @@ export function TickerView({ ticker }: TickerViewProps) {
             setIsLoading(true);
             setError(null);
             try {
-                // limit could be dynamic based on timeframe if needed, but 1000 is a safe default for charts
+                // Use optimized limit based on timeframe
+                const limit = getTimeframeLimit(timeframe);
                 const res = await pricesService.getPrices({
                     ticker,
                     timeframe,
-                    limit: 1000
+                    limit
                 });
                 if (isMounted) {
                     setData(res.data || []);

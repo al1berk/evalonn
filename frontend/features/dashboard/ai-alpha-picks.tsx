@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { Brain, TrendingUp, TrendingDown, Sparkles, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useWatchlist } from '@/hooks/use-prices'
+import { useDashboardWatchlist, DashboardTicker } from '@/hooks/use-dashboard-data'
 
 const signalColors: Record<string, { bg: string; text: string; border: string }> = {
   'Strong Buy': { bg: 'bg-chart-2/15', text: 'text-chart-2', border: 'border-chart-2/30' },
@@ -40,13 +40,13 @@ function getReason(ticker: string, changePercent: number): string {
 
 export function AIAlphaPicks() {
   const router = useRouter()
-  const { data: watchlistData, isLoading } = useWatchlist()
+  const { data: watchlistData, isLoading } = useDashboardWatchlist()
 
   const handlePickClick = (ticker: string) => {
     router.push(`/markets/${ticker}`)
   }
 
-  const picks = (watchlistData || []).slice(0, 3).map((item) => ({
+  const picks = (watchlistData || []).slice(0, 3).map((item: DashboardTicker) => ({
     ticker: item.ticker,
     name: item.name,
     price: item.price,

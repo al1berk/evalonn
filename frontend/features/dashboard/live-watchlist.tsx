@@ -4,8 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { TrendingUp, TrendingDown, Star, Filter, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useWatchlist } from '@/hooks/use-prices'
-import { TICKER_NAMES } from '@/services/price.service'
+import { useDashboardWatchlist, DashboardTicker } from '@/hooks/use-dashboard-data'
 
 type CategoryFilter = 'ALL' | 'BIST'
 
@@ -40,11 +39,11 @@ export function LiveWatchlist({ onSelectTicker, activeTicker }: LiveWatchlistPro
   const router = useRouter()
   const [filter, setFilter] = useState<CategoryFilter>('ALL')
   
-  const { data: rawWatchlistData, isLoading } = useWatchlist()
+  const { data: rawWatchlistData, isLoading } = useDashboardWatchlist()
   
-  const watchlistData: DisplayWatchlistItem[] = (rawWatchlistData || []).map((item) => ({
+  const watchlistData: DisplayWatchlistItem[] = (rawWatchlistData || []).map((item: DashboardTicker) => ({
     ticker: item.ticker,
-    name: item.name || TICKER_NAMES[item.ticker] || item.ticker,
+    name: item.name,
     price: item.price,
     change: item.change,
     changePercent: item.changePercent,

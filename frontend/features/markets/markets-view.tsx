@@ -1,17 +1,30 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Globe, TrendingUp, TrendingDown, Bitcoin, DollarSign, Activity, MoreHorizontal, Loader2 } from 'lucide-react';
+import { Globe, TrendingUp, TrendingDown, Bitcoin, DollarSign, Activity, MoreHorizontal, Loader2, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PriceBar } from '@/types/market';
 import { MARKET_TICKERS, AVAILABLE_TICKERS, TICKER_NAMES } from '@/config/markets';
 import { pricesService } from '@/services/prices';
 import { useRouter } from 'next/navigation';
+
+// Sorting types
+type SortField = 'ticker' | 'price' | 'changePct' | 'changeVal' | 'high' | 'low' | 'vol' | 'rating';
+type SortDirection = 'asc' | 'desc';
+
+// Rating order for sorting
+const RATING_ORDER: Record<string, number> = {
+    'Strong Buy': 5,
+    'Buy': 4,
+    'Neutral': 3,
+    'Sell': 2,
+    'Strong Sell': 1,
+};
 
 // Keep mock data format but use tickers from config
 const mockMarketData = {
@@ -50,6 +63,88 @@ function RatingBadge({ rating }: { rating: string }) {
 // Added `isInteractive` prop to optionally disable linking
 function MarketTable({ data, isLoading, isInteractive = false }: { data: any[], isLoading?: boolean, isInteractive?: boolean }) {
     const router = useRouter();
+    const [sortField, setSortField] = useState<SortField>('changePct');
+    const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+    // Handle sort click
+    const handleSort = (field: SortField) => {
+        if (sortField === field) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortField(field);
+            setSortDirection('desc');
+        }
+    };
+
+    // Sort data
+    const sortedData = useMemo(() => {
+        if (!data || data.length === 0) return data;
+
+        return [...data].sort((a, b) => {
+            const aHasData = a.price !== null && a.price !== undefined;
+            const bHasData = b.price !== null && b.price !== undefined;
+
+            // Items without data go to the bottom
+            if (aHasData && !bHasData) return -1;
+            if (!aHasData && bHasData) return 1;
+            if (!aHasData && !bHasData) return 0;
+
+            let aVal: any;
+            let bVal: any;
+
+            if (sortField === 'rating') {
+                aVal = RATING_ORDER[a.rating] || 0;
+                bVal = RATING_ORDER[b.rating] || 0;
+            } else if (sortField === 'ticker') {
+                aVal = a.ticker || '';
+                bVal = b.ticker || '';
+            } else {
+                aVal = a[sortField] ?? 0;
+                bVal = b[sortField] ?? 0;
+            }
+
+            // Handle string comparison for ticker
+            if (sortField === 'ticker') {
+                const comparison = aVal.localeCompare(bVal);
+                return sortDirection === 'asc' ? comparison : -comparison;
+            }
+
+            // Numeric comparison
+            if (sortDirection === 'asc') {
+                return aVal - bVal;
+            }
+            return bVal - aVal;
+        });
+    }, [data, sortField, sortDirection]);
+
+    // Sortable header component
+    const SortableHeader = ({ field, label, align = 'right' }: { field: SortField; label: string; align?: 'left' | 'right' }) => {
+        const isActive = sortField === field;
+        return (
+            <TableHead
+                className={cn(
+                    "text-xs font-semibold uppercase tracking-wider cursor-pointer select-none transition-colors hover:bg-muted/50",
+                    align === 'left' ? "text-left pl-4" : "text-right",
+                    isActive ? "text-foreground" : "text-muted-foreground"
+                )}
+                onClick={() => handleSort(field)}
+            >
+                <div className={cn("flex items-center gap-1", align === 'right' && "justify-end")}>
+                    <span>{label}</span>
+                    {isActive ? (
+                        sortDirection === 'asc' ? (
+                            <ChevronUp className="h-3.5 w-3.5" />
+                        ) : (
+                            <ChevronDown className="h-3.5 w-3.5" />
+                        )
+                    ) : (
+                        <ChevronsUpDown className="h-3.5 w-3.5 opacity-30" />
+                    )}
+                </div>
+            </TableHead>
+        );
+    };
+
     if (isLoading) {
         return (
             <Card className="bg-card border-none rounded-none shadow-none overflow-hidden flex justify-center items-center py-20">
@@ -64,43 +159,73 @@ function MarketTable({ data, isLoading, isInteractive = false }: { data: any[], 
                 <Table>
                     <TableHeader className="bg-background hover:bg-background">
                         <TableRow className="border-border hover:bg-background">
-                            <TableHead className="w-[300px] text-xs font-semibold uppercase tracking-wider text-muted-foreground pl-4">Ticker</TableHead>
-                            <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Price</TableHead>
-                            <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Change %</TableHead>
-                            <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Change</TableHead>
-                            <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">High</TableHead>
-                            <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Low</TableHead>
-                            <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Volume</TableHead>
-                            <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground pr-4">Rating</TableHead>
+                            <SortableHeader field="ticker" label="Ticker" align="left" />
+                            <SortableHeader field="price" label="Price" />
+                            <SortableHeader field="changePct" label="Change %" />
+                            <SortableHeader field="changeVal" label="Change" />
+                            <SortableHeader field="high" label="High" />
+                            <SortableHeader field="low" label="Low" />
+                            <SortableHeader field="vol" label="Volume" />
+                            <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground pr-4 cursor-pointer select-none hover:bg-muted/50" onClick={() => handleSort('rating')}>
+                                <div className="flex items-center gap-1 justify-end">
+                                    <span>Rating</span>
+                                    {sortField === 'rating' ? (
+                                        sortDirection === 'asc' ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />
+                                    ) : (
+                                        <ChevronsUpDown className="h-3.5 w-3.5 opacity-30" />
+                                    )}
+                                </div>
+                            </TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {data.map((item, i) => {
+                        {sortedData.map((item, i) => {
+                            const hasData = item.price !== null && item.price !== undefined;
                             const RowContent = (
                                 <>
                                     <TableCell className="font-medium pl-4 py-3">
                                         <div className="flex items-center gap-3">
-                                            <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                                            <div className={cn(
+                                                "h-8 w-8 rounded-full flex items-center justify-center text-[10px] font-bold",
+                                                hasData ? "bg-secondary text-muted-foreground" : "bg-muted/50 text-muted-foreground/50"
+                                            )}>
                                                 {item.ticker ? item.ticker[0] : '?'}
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{item.ticker}</span>
+                                                <span className={cn(
+                                                    "text-sm font-bold transition-colors",
+                                                    hasData ? "text-foreground group-hover:text-primary" : "text-muted-foreground"
+                                                )}>{item.ticker}</span>
                                                 <span className="text-xs text-muted-foreground">{item.name || 'Stock'}</span>
                                             </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="text-right font-mono text-sm">{item.price?.toFixed(2) || '-'}</TableCell>
-                                    <TableCell className={cn("text-right font-medium text-sm", item.changePct >= 0 ? "text-chart-2" : "text-destructive")}>
-                                        {item.changePct !== undefined ? `${item.changePct > 0 ? '+' : ''}${item.changePct}%` : '-'}
+                                    <TableCell className={cn("text-right font-mono text-sm", !hasData && "text-muted-foreground/50")}>
+                                        {hasData ? item.price.toFixed(2) : '-'}
                                     </TableCell>
-                                    <TableCell className={cn("text-right font-medium text-sm", item.changeVal >= 0 ? "text-chart-2" : "text-destructive")}>
-                                        {item.changeVal !== undefined ? `${item.changeVal > 0 ? '+' : ''}${item.changeVal.toFixed(2)}` : '-'}
+                                    <TableCell className={cn(
+                                        "text-right font-medium text-sm",
+                                        !hasData ? "text-muted-foreground/50" : (item.changePct >= 0 ? "text-chart-2" : "text-destructive")
+                                    )}>
+                                        {hasData && item.changePct !== null ? `${item.changePct > 0 ? '+' : ''}${item.changePct}%` : '-'}
                                     </TableCell>
-                                    <TableCell className="text-right font-mono text-sm text-muted-foreground">{item.high?.toFixed(2) || '-'}</TableCell>
-                                    <TableCell className="text-right font-mono text-sm text-muted-foreground">{item.low?.toFixed(2) || '-'}</TableCell>
-                                    <TableCell className="text-right text-sm text-muted-foreground">{typeof item.vol === 'number' ? formatVolume(item.vol) : item.vol || '-'}</TableCell>
+                                    <TableCell className={cn(
+                                        "text-right font-medium text-sm",
+                                        !hasData ? "text-muted-foreground/50" : (item.changeVal >= 0 ? "text-chart-2" : "text-destructive")
+                                    )}>
+                                        {hasData && item.changeVal !== null ? `${item.changeVal > 0 ? '+' : ''}${item.changeVal.toFixed(2)}` : '-'}
+                                    </TableCell>
+                                    <TableCell className={cn("text-right font-mono text-sm", hasData ? "text-muted-foreground" : "text-muted-foreground/50")}>
+                                        {hasData && item.high ? item.high.toFixed(2) : '-'}
+                                    </TableCell>
+                                    <TableCell className={cn("text-right font-mono text-sm", hasData ? "text-muted-foreground" : "text-muted-foreground/50")}>
+                                        {hasData && item.low ? item.low.toFixed(2) : '-'}
+                                    </TableCell>
+                                    <TableCell className={cn("text-right text-sm", hasData ? "text-muted-foreground" : "text-muted-foreground/50")}>
+                                        {hasData && typeof item.vol === 'number' && item.vol > 0 ? formatVolume(item.vol) : '-'}
+                                    </TableCell>
                                     <TableCell className="text-right pr-4">
-                                        <RatingBadge rating={item.rating || 'Neutral'} />
+                                        <RatingBadge rating={hasData ? (item.rating || 'Neutral') : 'Neutral'} />
                                     </TableCell>
                                 </>
                             );
@@ -115,7 +240,7 @@ function MarketTable({ data, isLoading, isInteractive = false }: { data: any[], 
                                 </TableRow>
                             );
                         })}
-                        {data.length === 0 && !isLoading && (
+                        {sortedData.length === 0 && !isLoading && (
                             <TableRow>
                                 <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                                     No data available
@@ -163,7 +288,7 @@ export function MarketsView() {
             try {
                 // Use batch endpoint for fast loading
                 const tickers = AVAILABLE_TICKERS.join(',');
-                const response = await fetch(`/api/prices/batch?tickers=${tickers}&timeframe=1d&limit=10`);
+                const response = await fetch(`/api/prices/batch?tickers=${tickers}&timeframe=1d&limit=2`);
                 
                 if (!response.ok) {
                     throw new Error('Failed to fetch batch prices');
@@ -171,29 +296,62 @@ export function MarketsView() {
                 
                 const result = await response.json();
                 
-                const processedData = result.data.map((item: any) => {
-                    const currentPrice = item.current?.c || 0;
-                    const previousPrice = item.previous?.c || currentPrice;
-                    const changeVal = currentPrice - previousPrice;
-                    const changePct = previousPrice !== 0 ? (changeVal / previousPrice) * 100 : 0;
+                // Create a map of successful data
+                const dataMap = new Map<string, any>();
+                result.data.forEach((item: any) => {
+                    dataMap.set(item.ticker, item);
+                });
 
-                    let rating = 'Neutral';
-                    if (changePct > 2) rating = 'Strong Buy';
-                    else if (changePct > 0.5) rating = 'Buy';
-                    else if (changePct < -2) rating = 'Strong Sell';
-                    else if (changePct < -0.5) rating = 'Sell';
+                // Process ALL tickers from AVAILABLE_TICKERS to ensure consistent list
+                const processedData = AVAILABLE_TICKERS.map((ticker) => {
+                    const item = dataMap.get(ticker);
+                    
+                    if (item && item.current) {
+                        const currentPrice = item.current.c || 0;
+                        const previousPrice = item.previous?.c || currentPrice;
+                        const changeVal = currentPrice - previousPrice;
+                        const changePct = previousPrice !== 0 ? (changeVal / previousPrice) * 100 : 0;
 
-                    return {
-                        ticker: item.ticker,
-                        name: TICKER_NAMES[item.ticker] || item.ticker,
-                        price: currentPrice,
-                        changePct: parseFloat(changePct.toFixed(2)),
-                        changeVal: parseFloat(changeVal.toFixed(2)),
-                        high: item.current?.h || 0,
-                        low: item.current?.l || 0,
-                        vol: item.current?.v || 0,
-                        rating: rating
-                    };
+                        let rating = 'Neutral';
+                        if (changePct > 2) rating = 'Strong Buy';
+                        else if (changePct > 0.5) rating = 'Buy';
+                        else if (changePct < -2) rating = 'Strong Sell';
+                        else if (changePct < -0.5) rating = 'Sell';
+
+                        return {
+                            ticker: ticker,
+                            name: TICKER_NAMES[ticker] || ticker,
+                            price: currentPrice,
+                            changePct: parseFloat(changePct.toFixed(2)),
+                            changeVal: parseFloat(changeVal.toFixed(2)),
+                            high: item.current.h || 0,
+                            low: item.current.l || 0,
+                            vol: item.current.v || 0,
+                            rating: rating,
+                            hasData: true
+                        };
+                    } else {
+                        // No data available - show placeholder
+                        return {
+                            ticker: ticker,
+                            name: TICKER_NAMES[ticker] || ticker,
+                            price: null,
+                            changePct: null,
+                            changeVal: null,
+                            high: null,
+                            low: null,
+                            vol: null,
+                            rating: 'Neutral',
+                            hasData: false
+                        };
+                    }
+                });
+
+                // Sort: items with data first, then by ticker name
+                processedData.sort((a, b) => {
+                    if (a.hasData && !b.hasData) return -1;
+                    if (!a.hasData && b.hasData) return 1;
+                    return a.ticker.localeCompare(b.ticker);
                 });
 
                 if (isMounted) {
@@ -203,6 +361,20 @@ export function MarketsView() {
             } catch (error) {
                 console.error("Error fetching market data:", error);
                 if (isMounted) {
+                    // On error, show all tickers with no data
+                    const fallbackData = AVAILABLE_TICKERS.map((ticker) => ({
+                        ticker,
+                        name: TICKER_NAMES[ticker] || ticker,
+                        price: null,
+                        changePct: null,
+                        changeVal: null,
+                        high: null,
+                        low: null,
+                        vol: null,
+                        rating: 'Neutral',
+                        hasData: false
+                    }));
+                    setBistData(fallbackData);
                     setIsLoadingBist(false);
                 }
             }
