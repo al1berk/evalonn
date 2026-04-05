@@ -28,6 +28,34 @@ export interface User {
     createdAt: string
 }
 
+export type AppLanguage = 'en' | 'tr' | 'de'
+export type AppCurrency = 'USD' | 'TRY' | 'EUR'
+export type AppTheme = 'dark' | 'light'
+export type UserPlan = 'Free' | 'Pro Trader'
+
+export interface NotificationPreferences {
+    priceAlerts: boolean
+    newsDigest: boolean
+}
+
+export interface UserPreferences {
+    language: AppLanguage
+    currency: AppCurrency
+    theme: AppTheme
+    notifications: NotificationPreferences
+}
+
+export interface UserProfile {
+    uid: string
+    email: string
+    displayName: string
+    photoURL: string | null
+    plan: UserPlan
+    createdAt: string
+    updatedAt: string
+    preferences: UserPreferences
+}
+
 export interface PriceHistory {
     timestamp: number
     open: number
