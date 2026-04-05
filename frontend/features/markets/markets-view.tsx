@@ -9,9 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Globe, TrendingUp, TrendingDown, Bitcoin, DollarSign, Activity, MoreHorizontal, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PriceBar } from '@/types/market';
-import { MARKET_TICKERS } from '@/config/markets';
+import { MARKET_TICKERS, AVAILABLE_TICKERS, TICKER_NAMES } from '@/config/markets';
 import { pricesService } from '@/services/prices';
-import { AVAILABLE_TICKERS, TICKER_NAMES } from '@/config/tickers';
 import { useRouter } from 'next/navigation';
 
 // Keep mock data format but use tickers from config

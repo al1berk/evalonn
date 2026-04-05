@@ -1,6 +1,11 @@
 import { PriceResponse, PriceBar } from '@/types'
+import { BIST_POPULAR, TICKER_NAMES } from '@/config/markets'
 
 export type Timeframe = '1m' | '5m' | '1h' | '1d' | '1w' | '1M'
+
+// Re-export from central config for backward compatibility
+export { TICKER_NAMES }
+export const WATCHLIST_TICKERS = [...BIST_POPULAR.slice(0, 4)] // THYAO, GARAN, ASELS, EREGL
 
 interface FetchPricesParams {
     ticker: string
@@ -116,19 +121,3 @@ export function getLatestPrice(data: PriceBar[]): number {
     return data[data.length - 1].c
 }
 
-// Default watchlist tickers
-export const WATCHLIST_TICKERS = ['THYAO', 'GARAN', 'ASELS', 'EREGL']
-
-// Ticker display names
-export const TICKER_NAMES: Record<string, string> = {
-    THYAO: 'Türk Hava Yolları',
-    GARAN: 'Garanti BBVA',
-    ASELS: 'Aselsan',
-    EREGL: 'Ereğli Demir Çelik',
-    AKBNK: 'Akbank',
-    FROTO: 'Ford Otosan',
-    SAHOL: 'Sabancı Holding',
-    KCHOL: 'Koç Holding',
-    TUPRS: 'Tüpraş',
-    SISE: 'Şişecam',
-}
