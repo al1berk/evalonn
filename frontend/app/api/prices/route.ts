@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
     const ticker = searchParams.get('ticker')
     const timeframe = searchParams.get('timeframe')
     const limit = searchParams.get('limit')
+    const start = searchParams.get('start')
 
     if (!ticker || !timeframe) {
         return NextResponse.json(
@@ -15,7 +16,10 @@ export async function GET(request: NextRequest) {
         )
     }
 
-    const url = `${EVALON_API_URL}/v1/prices?ticker=${ticker}&timeframe=${timeframe}&limit=${limit || 100}`
+    let url = `${EVALON_API_URL}/v1/prices?ticker=${ticker}&timeframe=${timeframe}&limit=${limit || 100}`
+    if (start) {
+        url += `&start=${start}`
+    }
 
     try {
         const response = await fetch(url)

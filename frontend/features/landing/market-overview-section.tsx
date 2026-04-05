@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import Link from 'next/link'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { marketIndices, generateIntradayData } from '@/data/dashboard.mock'
 import { TrendingUp, TrendingDown, ChevronRight } from 'lucide-react'
@@ -52,20 +53,24 @@ export function MarketOverviewSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Card 1: Indices */}
           <div className="bg-[#1e222d] border border-[#2a2e39] rounded-xl overflow-hidden hover:border-[#787b86] transition-colors">
-            <div className="p-4 border-b border-[#2a2e39] flex items-center justify-between">
+            <Link href="/login" className="p-4 border-b border-[#2a2e39] flex items-center justify-between hover:bg-[#2a2e39]/30 transition-colors">
               <h3 className="font-bold text-white flex items-center gap-2">
                 <TrendingUp className="text-[#2962ff]" size={20} /> Indices
               </h3>
               <ChevronRight className="text-[#787b86]" size={16} />
-            </div>
+            </Link>
             <div className="p-2">
               {marketIndices.slice(0, 5).map((index) => (
-                <div key={index.symbol} className="flex items-center justify-between p-3 hover:bg-[#2a2e39]/50 rounded cursor-pointer group">
+                <Link 
+                  key={index.symbol} 
+                  href="/login"
+                  className="flex items-center justify-between p-3 hover:bg-[#2a2e39]/50 rounded cursor-pointer group"
+                >
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-full ${index.badgeColor} flex items-center justify-center text-[10px] text-white font-bold`}>
                       {index.badge}
                     </div>
-                    <span className="text-white font-medium text-sm">{index.name}</span>
+                    <span className="text-white font-medium text-sm group-hover:text-[#2962ff] transition-colors">{index.name}</span>
                   </div>
                   <div className="text-right">
                     <div className="text-sm text-white">{index.price.toLocaleString()}</div>
@@ -73,19 +78,19 @@ export function MarketOverviewSection() {
                       {index.changePercent >= 0 ? '+' : ''}{index.changePercent}%
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
 
           {/* Card 2: Stocks */}
           <div className="bg-[#1e222d] border border-[#2a2e39] rounded-xl overflow-hidden hover:border-[#787b86] transition-colors">
-            <div className="p-4 border-b border-[#2a2e39] flex items-center justify-between">
+            <Link href="/login" className="p-4 border-b border-[#2a2e39] flex items-center justify-between hover:bg-[#2a2e39]/30 transition-colors">
               <h3 className="font-bold text-white flex items-center gap-2">
                 <TrendingUp className="text-[#2962ff]" size={20} /> Stocks
               </h3>
               <ChevronRight className="text-[#787b86]" size={16} />
-            </div>
+            </Link>
             <div className="p-2">
               {[
                 { name: 'Tesla', sym: 'TSLA', price: 175.34, chg: -1.2 },
@@ -94,13 +99,17 @@ export function MarketOverviewSection() {
                 { name: 'Amazon', sym: 'AMZN', price: 178.20, chg: 1.1 },
                 { name: 'Microsoft', sym: 'MSFT', price: 410.05, chg: 0.8 },
               ].map((stock) => (
-                <div key={stock.sym} className="flex items-center justify-between p-3 hover:bg-[#2a2e39]/50 rounded cursor-pointer group">
+                <Link 
+                  key={stock.sym} 
+                  href="/login"
+                  className="flex items-center justify-between p-3 hover:bg-[#2a2e39]/50 rounded cursor-pointer group"
+                >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center text-[10px] font-bold">
                       {stock.sym[0]}
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-white font-medium text-sm">{stock.sym}</span>
+                      <span className="text-white font-medium text-sm group-hover:text-[#2962ff] transition-colors">{stock.sym}</span>
                       <span className="text-[#787b86] text-xs">{stock.name}</span>
                     </div>
                   </div>
@@ -110,19 +119,19 @@ export function MarketOverviewSection() {
                       {stock.chg >= 0 ? '+' : ''}{stock.chg}%
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
 
           {/* Card 3: Crypto */}
           <div className="bg-[#1e222d] border border-[#2a2e39] rounded-xl overflow-hidden hover:border-[#787b86] transition-colors">
-            <div className="p-4 border-b border-[#2a2e39] flex items-center justify-between">
+            <Link href="/login" className="p-4 border-b border-[#2a2e39] flex items-center justify-between hover:bg-[#2a2e39]/30 transition-colors">
               <h3 className="font-bold text-white flex items-center gap-2">
                 <TrendingUp className="text-[#2962ff]" size={20} /> Crypto
               </h3>
               <ChevronRight className="text-[#787b86]" size={16} />
-            </div>
+            </Link>
             <div className="p-2">
               {[
                 { name: 'Bitcoin', sym: 'BTC', price: 68500, chg: 2.1 },
@@ -131,13 +140,17 @@ export function MarketOverviewSection() {
                 { name: 'XRP', sym: 'XRP', price: 0.62, chg: -0.5 },
                 { name: 'Cardano', sym: 'ADA', price: 0.72, chg: 1.2 },
               ].map((coin) => (
-                <div key={coin.sym} className="flex items-center justify-between p-3 hover:bg-[#2a2e39]/50 rounded cursor-pointer group">
+                <Link 
+                  key={coin.sym} 
+                  href="/login"
+                  className="flex items-center justify-between p-3 hover:bg-[#2a2e39]/50 rounded cursor-pointer group"
+                >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center text-[10px] font-bold">
                       {coin.sym[0]}
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-white font-medium text-sm">{coin.sym}USD</span>
+                      <span className="text-white font-medium text-sm group-hover:text-[#2962ff] transition-colors">{coin.sym}USD</span>
                       <span className="text-[#787b86] text-xs">{coin.name}</span>
                     </div>
                   </div>
@@ -147,7 +160,7 @@ export function MarketOverviewSection() {
                       {coin.chg >= 0 ? '+' : ''}{coin.chg}%
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>

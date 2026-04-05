@@ -1,16 +1,34 @@
 'use client'
 
 import { useState } from 'react'
-import { watchlistData } from '@/data/dashboard.mock'
-import { TrendingUp, TrendingDown, Minus, Star, Filter } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { TrendingUp, TrendingDown, Star, Filter, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useWatchlist } from '@/hooks/use-prices'
+import { TICKER_NAMES } from '@/services/price.service'
 
-type CategoryFilter = 'ALL' | 'BIST' | 'NASDAQ' | 'CRYPTO' | 'FOREX'
+type CategoryFilter = 'ALL' | 'BIST'
+
+interface DisplayWatchlistItem {
+  ticker: string
+  name: string
+  price: number
+  change: number
+  changePercent: number
+  aiSignal: 'Buy' | 'Sell' | 'Neutral'
+  category: 'BIST'
+}
 
 const signalConfig: Record<string, { bg: string; text: string; label: string }> = {
   Buy: { bg: 'bg-[#089981]/15', text: 'text-[#089981]', label: 'BUY' },
   Sell: { bg: 'bg-[#f23645]/15', text: 'text-[#f23645]', label: 'SELL' },
   Neutral: { bg: 'bg-[#787b86]/15', text: 'text-[#787b86]', label: 'HOLD' },
+}
+
+function determineSignal(changePercent: number): 'Buy' | 'Sell' | 'Neutral' {
+  if (changePercent > 1) return 'Buy'
+  if (changePercent < -1) return 'Sell'
+  return 'Neutral'
 }
 
 interface LiveWatchlistProps {
@@ -19,13 +37,31 @@ interface LiveWatchlistProps {
 }
 
 export function LiveWatchlist({ onSelectTicker, activeTicker }: LiveWatchlistProps) {
+  const router = useRouter()
   const [filter, setFilter] = useState<CategoryFilter>('ALL')
+  
+  const { data: rawWatchlistData, isLoading } = useWatchlist()
+  
+  const watchlistData: DisplayWatchlistItem[] = (rawWatchlistData || []).map((item) => ({
+    ticker: item.ticker,
+    name: item.name || TICKER_NAMES[item.ticker] || item.ticker,
+    price: item.price,
+    change: item.change,
+    changePercent: item.changePercent,
+    aiSignal: determineSignal(item.changePercent),
+    category: 'BIST' as const,
+  }))
 
   const filtered = filter === 'ALL'
     ? watchlistData
     : watchlistData.filter((item) => item.category === filter)
 
-  const categories: CategoryFilter[] = ['ALL', 'BIST', 'CRYPTO', 'NASDAQ', 'FOREX']
+  const categories: CategoryFilter[] = ['ALL', 'BIST']
+
+  const handleItemClick = (item: DisplayWatchlistItem) => {
+    onSelectTicker?.(item.ticker, item.name)
+    router.push(`/markets/${item.ticker}`)
+  }
 
   return (
     <div className="rounded-xl bg-card border border-border overflow-hidden h-full flex flex-col">
@@ -37,7 +73,7 @@ export function LiveWatchlist({ onSelectTicker, activeTicker }: LiveWatchlistPro
           </div>
           <div>
             <h3 className="text-sm font-semibold text-foreground">Live Watchlist</h3>
-            <p className="text-[10px] text-muted-foreground">{filtered.length} assets</p>
+            <p className="text-[10px] text-muted-foreground">{isLoading ? 'Loading...' : `${filtered.length} assets`}</p>
           </div>
         </div>
 
@@ -61,17 +97,24 @@ export function LiveWatchlist({ onSelectTicker, activeTicker }: LiveWatchlistPro
       </div>
 
       {/* Table Header */}
-      <div className="grid grid-cols-12 gap-2 px-5 py-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/30">
+      <div className="grid grid-cols-10 gap-2 px-5 py-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/30">
         <div className="col-span-4">Asset</div>
         <div className="col-span-2 text-right">Price</div>
-        <div className="col-span-2 text-right">24h Change</div>
-        <div className="col-span-2 text-right hidden sm:block">Volume</div>
+        <div className="col-span-2 text-right">Change</div>
         <div className="col-span-2 text-center">AI Signal</div>
       </div>
 
       {/* Table Body */}
       <div className="flex-1 overflow-y-auto">
-        {filtered.map((item) => {
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+            No data available
+          </div>
+        ) : filtered.map((item) => {
           const isPositive = item.changePercent >= 0
           const signal = signalConfig[item.aiSignal] || signalConfig['Neutral']
           const isActive = item.ticker === activeTicker
@@ -79,9 +122,9 @@ export function LiveWatchlist({ onSelectTicker, activeTicker }: LiveWatchlistPro
           return (
             <div
               key={item.ticker}
-              onClick={() => onSelectTicker?.(item.ticker, item.name)}
+              onClick={() => handleItemClick(item)}
               className={cn(
-                "grid grid-cols-12 gap-2 items-center px-5 py-2.5 text-sm border-b border-border/20 cursor-pointer transition-all duration-150",
+                "grid grid-cols-10 gap-2 items-center px-5 py-2.5 text-sm border-b border-border/20 cursor-pointer transition-all duration-150",
                 isActive
                   ? "bg-primary/10 border-l-2 border-l-primary"
                   : "hover:bg-muted/50"
@@ -116,16 +159,11 @@ export function LiveWatchlist({ onSelectTicker, activeTicker }: LiveWatchlistPro
                 </span>
               </div>
 
-              {/* 24h Change */}
+              {/* Change */}
               <div className="col-span-2 text-right">
                 <span className={cn("text-xs font-semibold", isPositive ? "text-[#089981]" : "text-[#f23645]")}>
                   {isPositive ? '+' : ''}{item.changePercent.toFixed(2)}%
                 </span>
-              </div>
-
-              {/* Volume */}
-              <div className="col-span-2 text-right hidden sm:block">
-                <span className="text-xs text-muted-foreground">{item.volume}</span>
               </div>
 
               {/* AI Signal */}

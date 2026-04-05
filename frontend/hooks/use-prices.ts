@@ -50,12 +50,14 @@ export function usePortfolioChart(period: '1D' | '1W' | '1M' = '1D') {
 
 /**
  * Hook to fetch watchlist data with mini charts
+ * Uses 5m timeframe for more up-to-date prices
  */
 export function useWatchlist() {
     return useQuery({
         queryKey: ['watchlist'],
         queryFn: async (): Promise<WatchlistItem[]> => {
-            const priceMap = await fetchMultipleTickers(WATCHLIST_TICKERS, '1h', 24)
+            // Use 5m timeframe with enough bars for a full trading day (~100 bars)
+            const priceMap = await fetchMultipleTickers(WATCHLIST_TICKERS, '5m', 100)
 
             return WATCHLIST_TICKERS.map((ticker) => {
                 const priceHistory = priceMap.get(ticker) || []
@@ -72,7 +74,7 @@ export function useWatchlist() {
                 }
             })
         },
-        staleTime: 1000 * 60, // 1 minute
-        refetchInterval: 1000 * 60 * 5, // Refetch every 5 minutes
+        staleTime: 1000 * 30, // 30 seconds for more frequent updates
+        refetchInterval: 1000 * 60, // Refetch every 1 minute
     })
 }

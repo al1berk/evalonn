@@ -12,8 +12,8 @@ export function DashboardView() {
     const { user } = useAuthStore()
     const displayName = user?.name || user?.email?.split('@')[0] || 'Trader'
 
-    const [selectedTicker, setSelectedTicker] = useState('XU100')
-    const [selectedName, setSelectedName] = useState('BIST 100')
+    const [selectedTicker, setSelectedTicker] = useState('THYAO')
+    const [selectedName, setSelectedName] = useState('Turkish Airlines')
 
     const handleSelectTicker = (ticker: string, name: string) => {
         setSelectedTicker(ticker)

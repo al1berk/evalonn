@@ -1,8 +1,9 @@
 'use client'
 
-import { aiAlphaPicks } from '@/data/dashboard.mock'
-import { Brain, TrendingUp, TrendingDown, Sparkles } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Brain, TrendingUp, TrendingDown, Sparkles, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useWatchlist } from '@/hooks/use-prices'
 
 const signalColors: Record<string, { bg: string; text: string; border: string }> = {
   'Strong Buy': { bg: 'bg-chart-2/15', text: 'text-chart-2', border: 'border-chart-2/30' },
@@ -12,7 +13,57 @@ const signalColors: Record<string, { bg: string; text: string; border: string }>
   'Strong Sell': { bg: 'bg-destructive/15', text: 'text-destructive', border: 'border-destructive/30' },
 }
 
+function getSignal(changePercent: number): 'Strong Buy' | 'Buy' | 'Neutral' | 'Sell' | 'Strong Sell' {
+  if (changePercent > 3) return 'Strong Buy'
+  if (changePercent > 1) return 'Buy'
+  if (changePercent < -3) return 'Strong Sell'
+  if (changePercent < -1) return 'Sell'
+  return 'Neutral'
+}
+
+function getConfidence(changePercent: number): number {
+  const absChange = Math.abs(changePercent)
+  if (absChange > 5) return 94
+  if (absChange > 3) return 87
+  if (absChange > 2) return 82
+  if (absChange > 1) return 75
+  return 65
+}
+
+function getReason(ticker: string, changePercent: number): string {
+  if (changePercent > 2) return 'Strong momentum + positive market sentiment'
+  if (changePercent > 0) return 'Bullish trend with steady volume'
+  if (changePercent < -2) return 'Bearish pressure, consider hedging'
+  if (changePercent < 0) return 'Minor correction, watch support levels'
+  return 'Consolidating, wait for breakout'
+}
+
 export function AIAlphaPicks() {
+  const router = useRouter()
+  const { data: watchlistData, isLoading } = useWatchlist()
+
+  const handlePickClick = (ticker: string) => {
+    router.push(`/markets/${ticker}`)
+  }
+
+  const picks = (watchlistData || []).slice(0, 3).map((item) => ({
+    ticker: item.ticker,
+    name: item.name,
+    price: item.price,
+    changePercent: item.changePercent,
+    signal: getSignal(item.changePercent),
+    confidence: getConfidence(item.changePercent),
+    reason: getReason(item.ticker, item.changePercent),
+  }))
+
+  if (isLoading) {
+    return (
+      <div className="rounded-xl bg-card border border-border overflow-hidden h-full flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    )
+  }
+
   return (
     <div className="rounded-xl bg-card border border-border overflow-hidden h-full flex flex-col">
       {/* Header */}
@@ -31,14 +82,15 @@ export function AIAlphaPicks() {
 
       {/* Picks */}
       <div className="flex-1 p-3 space-y-2 overflow-y-auto">
-        {aiAlphaPicks.map((pick) => {
+        {picks.map((pick) => {
           const isPositive = pick.changePercent >= 0
           const colors = signalColors[pick.signal] || signalColors['Neutral']
 
           return (
             <div
               key={pick.ticker}
-              className="group relative p-3.5 rounded-lg bg-background border border-border/50 hover:border-border transition-all duration-200 cursor-pointer"
+              onClick={() => handlePickClick(pick.ticker)}
+              className="group relative p-3.5 rounded-lg bg-background border border-border/50 hover:border-border hover:bg-muted/30 transition-all duration-200 cursor-pointer"
             >
               {/* Top row: Ticker + Signal */}
               <div className="flex items-start justify-between mb-2">

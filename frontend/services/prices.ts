@@ -1,6 +1,6 @@
 import { FetchPricesParams, PricesResponse, PriceBar } from '@/types/market';
 
-const BASE_URL = '/api/v1/prices';
+const BASE_URL = '/api/prices';
 
 export const pricesService = {
     /**
@@ -74,13 +74,16 @@ export const pricesService = {
      */
     async getLatestPriceWithChange(ticker: string): Promise<{ current: PriceBar, previous: PriceBar | null } | null> {
         try {
-            // Because API limit fetches from the START of the dataset instead of the end,
-            // we must fetch a larger chunk of recent data (or all of it) and take the last two items.
-            // Using a large limit or omitting it to get the latest dates.
+            // Fetch only the last 10 days to get recent data efficiently
+            // The API sorts by time, so we take the last 2 items
+            const now = new Date();
+            const tenDaysAgo = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
+            
             const res = await this.getPrices({
                 ticker,
                 timeframe: '1d',
-                limit: 100 // Fetching the last 100 days to guarantee we get the most recent ones
+                start: tenDaysAgo.toISOString().split('T')[0],
+                limit: 10
             });
 
             if (res.data && res.data.length > 0) {

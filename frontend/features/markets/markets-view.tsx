@@ -8,8 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Globe, TrendingUp, TrendingDown, Bitcoin, DollarSign, Activity, MoreHorizontal, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { TICKERS_RAW, PriceBar } from '@/types/market';
+import { PriceBar } from '@/types/market';
 import { pricesService } from '@/services/prices';
+import { AVAILABLE_TICKERS, TICKER_NAMES } from '@/config/tickers';
 import { useRouter } from 'next/navigation';
 
 // Keep mock data for other tabs for now
@@ -167,53 +168,75 @@ export function MarketsView() {
 
     useEffect(() => {
         let isMounted = true;
+        
         const fetchBistData = async () => {
             setIsLoadingBist(true);
             try {
-                // Fetch all tickers in the background. Note: this will make multiple concurrent requests, but is fine for this small list.
-                const tickersToDisplay = TICKERS_RAW;
+                // Use verified available tickers from config
+                const availableTickers = [...AVAILABLE_TICKERS];
+                
+                const allData: any[] = [];
+                const BATCH_SIZE = 8;
+                
+                // Process in batches to avoid rate limiting
+                for (let i = 0; i < availableTickers.length; i += BATCH_SIZE) {
+                    if (!isMounted) break;
+                    
+                    const batch = availableTickers.slice(i, i + BATCH_SIZE);
+                    const batchPromises = batch.map(async (ticker) => {
+                        try {
+                            const res = await pricesService.getLatestPriceWithChange(ticker);
+                            if (res && res.current) {
+                                const currentPrice = res.current.c;
+                                const previousPrice = res.previous ? res.previous.c : currentPrice;
+                                const changeVal = currentPrice - previousPrice;
+                                const changePct = previousPrice !== 0 ? (changeVal / previousPrice) * 100 : 0;
 
-                const fetchPromises = tickersToDisplay.map(async (ticker) => {
-                    const res = await pricesService.getLatestPriceWithChange(ticker);
-                    if (res && res.current) {
-                        const currentPrice = res.current.c;
-                        const previousPrice = res.previous ? res.previous.c : currentPrice;
-                        const changeVal = currentPrice - previousPrice;
-                        const changePct = previousPrice !== 0 ? (changeVal / previousPrice) * 100 : 0;
+                                let rating = 'Neutral';
+                                if (changePct > 2) rating = 'Strong Buy';
+                                else if (changePct > 0.5) rating = 'Buy';
+                                else if (changePct < -2) rating = 'Strong Sell';
+                                else if (changePct < -0.5) rating = 'Sell';
 
-                        // Determine simple rating based on change for visual effect
-                        let rating = 'Neutral';
-                        if (changePct > 2) rating = 'Strong Buy';
-                        else if (changePct > 0.5) rating = 'Buy';
-                        else if (changePct < -2) rating = 'Strong Sell';
-                        else if (changePct < -0.5) rating = 'Sell';
+                                return {
+                                    ticker: ticker,
+                                    name: TICKER_NAMES[ticker] || ticker,
+                                    price: currentPrice,
+                                    changePct: parseFloat(changePct.toFixed(2)),
+                                    changeVal: parseFloat(changeVal.toFixed(2)),
+                                    high: res.current.h,
+                                    low: res.current.l,
+                                    vol: res.current.v,
+                                    rating: rating
+                                };
+                            }
+                        } catch (e) {
+                            console.warn(`Skipping ${ticker}:`, e);
+                        }
+                        return null;
+                    });
 
-                        return {
-                            ticker: ticker,
-                            name: ticker, // don't have company names in TICKERS_RAW, use ticker for now
-                            price: currentPrice,
-                            changePct: parseFloat(changePct.toFixed(2)),
-                            changeVal: parseFloat(changeVal.toFixed(2)),
-                            high: res.current.h,
-                            low: res.current.l,
-                            vol: res.current.v,
-                            rating: rating
-                        };
+                    const batchResults = await Promise.all(batchPromises);
+                    const validResults = batchResults.filter(r => r !== null);
+                    allData.push(...validResults);
+                    
+                    // Update UI progressively
+                    if (isMounted) {
+                        setBistData([...allData]);
                     }
-                    return null;
-                });
-
-                const results = await Promise.allSettled(fetchPromises);
-                const validData = results
-                    .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && r.value !== null)
-                    .map(r => r.value);
+                    
+                    // Small delay between batches to avoid rate limiting
+                    if (i + BATCH_SIZE < availableTickers.length) {
+                        await new Promise(resolve => setTimeout(resolve, 150));
+                    }
+                }
 
                 if (isMounted) {
-                    setBistData(validData);
+                    setBistData(allData);
+                    setIsLoadingBist(false);
                 }
             } catch (error) {
                 console.error("Error fetching market data:", error);
-            } finally {
                 if (isMounted) {
                     setIsLoadingBist(false);
                 }

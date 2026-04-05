@@ -6,6 +6,39 @@ interface FetchPricesParams {
     ticker: string
     timeframe: Timeframe
     limit?: number
+    start?: string
+}
+
+/**
+ * Calculate start date based on timeframe to get recent data
+ */
+function getDefaultStartDate(timeframe: Timeframe): string {
+    const now = new Date()
+    let daysBack: number
+
+    switch (timeframe) {
+        case '1m':
+        case '5m':
+            daysBack = 3 // Last 3 days for intraday
+            break
+        case '1h':
+            daysBack = 7 // Last week for hourly
+            break
+        case '1d':
+            daysBack = 30 // Last month for daily
+            break
+        case '1w':
+            daysBack = 180 // Last 6 months for weekly
+            break
+        case '1M':
+            daysBack = 365 // Last year for monthly
+            break
+        default:
+            daysBack = 30
+    }
+
+    const startDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000)
+    return startDate.toISOString().split('T')[0]
 }
 
 /**
@@ -16,9 +49,13 @@ export async function fetchPrices({
     ticker,
     timeframe,
     limit = 100,
+    start,
 }: FetchPricesParams): Promise<PriceResponse> {
+    // Use start date to get recent data
+    const startDate = start || getDefaultStartDate(timeframe)
+    
     // Use local API proxy instead of direct external API call
-    const url = `/api/prices?ticker=${ticker}&timeframe=${timeframe}&limit=${limit}`
+    const url = `/api/prices?ticker=${ticker}&timeframe=${timeframe}&limit=${limit}&start=${startDate}`
 
     const response = await fetch(url)
 
