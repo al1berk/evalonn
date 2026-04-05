@@ -161,67 +161,43 @@ export function MarketsView() {
         const fetchBistData = async () => {
             setIsLoadingBist(true);
             try {
-                // Use verified available tickers from config
-                const availableTickers = [...AVAILABLE_TICKERS];
+                // Use batch endpoint for fast loading
+                const tickers = AVAILABLE_TICKERS.join(',');
+                const response = await fetch(`/api/prices/batch?tickers=${tickers}&timeframe=1d&limit=10`);
                 
-                const allData: any[] = [];
-                const BATCH_SIZE = 8;
-                
-                // Process in batches to avoid rate limiting
-                for (let i = 0; i < availableTickers.length; i += BATCH_SIZE) {
-                    if (!isMounted) break;
-                    
-                    const batch = availableTickers.slice(i, i + BATCH_SIZE);
-                    const batchPromises = batch.map(async (ticker) => {
-                        try {
-                            const res = await pricesService.getLatestPriceWithChange(ticker);
-                            if (res && res.current) {
-                                const currentPrice = res.current.c;
-                                const previousPrice = res.previous ? res.previous.c : currentPrice;
-                                const changeVal = currentPrice - previousPrice;
-                                const changePct = previousPrice !== 0 ? (changeVal / previousPrice) * 100 : 0;
-
-                                let rating = 'Neutral';
-                                if (changePct > 2) rating = 'Strong Buy';
-                                else if (changePct > 0.5) rating = 'Buy';
-                                else if (changePct < -2) rating = 'Strong Sell';
-                                else if (changePct < -0.5) rating = 'Sell';
-
-                                return {
-                                    ticker: ticker,
-                                    name: TICKER_NAMES[ticker] || ticker,
-                                    price: currentPrice,
-                                    changePct: parseFloat(changePct.toFixed(2)),
-                                    changeVal: parseFloat(changeVal.toFixed(2)),
-                                    high: res.current.h,
-                                    low: res.current.l,
-                                    vol: res.current.v,
-                                    rating: rating
-                                };
-                            }
-                        } catch (e) {
-                            console.warn(`Skipping ${ticker}:`, e);
-                        }
-                        return null;
-                    });
-
-                    const batchResults = await Promise.all(batchPromises);
-                    const validResults = batchResults.filter(r => r !== null);
-                    allData.push(...validResults);
-                    
-                    // Update UI progressively
-                    if (isMounted) {
-                        setBistData([...allData]);
-                    }
-                    
-                    // Small delay between batches to avoid rate limiting
-                    if (i + BATCH_SIZE < availableTickers.length) {
-                        await new Promise(resolve => setTimeout(resolve, 150));
-                    }
+                if (!response.ok) {
+                    throw new Error('Failed to fetch batch prices');
                 }
+                
+                const result = await response.json();
+                
+                const processedData = result.data.map((item: any) => {
+                    const currentPrice = item.current?.c || 0;
+                    const previousPrice = item.previous?.c || currentPrice;
+                    const changeVal = currentPrice - previousPrice;
+                    const changePct = previousPrice !== 0 ? (changeVal / previousPrice) * 100 : 0;
+
+                    let rating = 'Neutral';
+                    if (changePct > 2) rating = 'Strong Buy';
+                    else if (changePct > 0.5) rating = 'Buy';
+                    else if (changePct < -2) rating = 'Strong Sell';
+                    else if (changePct < -0.5) rating = 'Sell';
+
+                    return {
+                        ticker: item.ticker,
+                        name: TICKER_NAMES[item.ticker] || item.ticker,
+                        price: currentPrice,
+                        changePct: parseFloat(changePct.toFixed(2)),
+                        changeVal: parseFloat(changeVal.toFixed(2)),
+                        high: item.current?.h || 0,
+                        low: item.current?.l || 0,
+                        vol: item.current?.v || 0,
+                        rating: rating
+                    };
+                });
 
                 if (isMounted) {
-                    setBistData(allData);
+                    setBistData(processedData);
                     setIsLoadingBist(false);
                 }
             } catch (error) {
