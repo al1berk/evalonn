@@ -24,18 +24,7 @@ export interface FetchPricesParams {
     end?: string;   // YYYY-MM-DDTHH:MM:SS
 }
 
-export const TICKERS_RAW = [
-    "AEFES", "AGHOL", "AKBNK", "AKSA", "AKSEN", "ALARK", "ALTNY", "ANSGR", "ARCLK", "ASELS",
-    "ASTOR", "BALSU", "BIMAS", "BRSAN", "BRYAT", "BSOKE", "BTCIM", "CANTE", "CCOLA", "CIMSA",
-    "CWENE", "DAPGM", "DOAS", "DOHOL", "DSTKF", "ECILC", "EFOR", "EGEEN", "EKGYO", "ENERY",
-    "ENJSA", "ENKAI", "EREGL", "EUPWR", "FENER", "FROTO", "GARAN", "GENIL", "GESAN", "GLRMK",
-    "GRSEL", "GRTHO", "GSRAY", "GUBRF", "HALKB", "HEKTS", "ISCTR", "ISMEN", "IZENR", "KCAER",
-    "KCHOL", "KLRHO", "KONTR", "KRDMD", "KTLEV", "KUYAS", "MAGEN", "MAVI", "MGROS", "MIATK",
-    "MPARK", "OBAMS", "ODAS", "OTKAR", "OYAKC", "PASEU", "PATEK", "PETKM", "PGSUS", "QUAGR",
-    "RALYH", "REEDR", "SAHOL", "SASA", "SISE", "SKBNK", "SOKM", "TABGD", "TAVHL", "TCELL",
-    "THYAO", "TKFEN", "TOASO", "TRALT", "TRENJ", "TRMET", "TSKB", "TSPOR", "TTKOM", "TTRAK",
-    "TUKAS", "TUPRS", "TUREX", "TURSG", "ULKER", "VAKBN", "VESTL", "YEOTK", "YKBNK", "ZOREN",
-    "AKCNS", "AKENR", "AKFGY", "ALGYO", "ALFAS", "AHGAZ", "AGROT", "ARDYZ", "BAGFS",
-    "BIZIM", "CLEBI", "DEVA", "GWIND", "ISGYO", "KAREL", "LOGO", "NETAS", "PETUN",
-    "PNSUT", "SELEC", "TMSN", "VESBE", "ZEDUR", "IZFAS"
-];
+// Re-export TICKERS_RAW directly from the new central config for backward compatibility
+import { MARKET_TICKERS } from '@/config/markets';
+export const TICKERS_RAW = MARKET_TICKERS.BIST;
+
