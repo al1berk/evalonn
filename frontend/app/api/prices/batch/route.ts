@@ -2,6 +2,28 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const EVALON_API_URL = process.env.NEXT_PUBLIC_EVALON_API_URL || 'https://evalon-mu.vercel.app'
 
+// Simple in-memory cache
+interface CacheEntry {
+    data: any
+    timestamp: number
+}
+
+const cache = new Map<string, CacheEntry>()
+const CACHE_TTL = 60 * 1000 // 1 minute
+
+function getCached(key: string): any | null {
+    const entry = cache.get(key)
+    if (entry && Date.now() - entry.timestamp < CACHE_TTL) {
+        return entry.data
+    }
+    cache.delete(key)
+    return null
+}
+
+function setCache(key: string, data: any): void {
+    cache.set(key, { data, timestamp: Date.now() })
+}
+
 interface PriceBar {
     t: string
     o: number
@@ -47,6 +69,13 @@ export async function GET(request: NextRequest) {
         )
     }
 
+    // Check cache first
+    const cacheKey = `batch:${timeframe}:${tickers.sort().join(',')}`
+    const cached = getCached(cacheKey)
+    if (cached) {
+        return NextResponse.json({ ...cached, cached: true })
+    }
+
     // Calculate start date for recent data
     const now = new Date()
     const daysBack = timeframe === '1d' ? 10 : 3
@@ -88,8 +117,13 @@ export async function GET(request: NextRequest) {
         return { ticker: tickers[index], current: null, previous: null, error: 'Failed to fetch' }
     })
 
-    return NextResponse.json({
+    const response = {
         count: data.length,
         data: data.filter(d => d.current !== null)
-    })
+    }
+
+    // Cache the result
+    setCache(cacheKey, response)
+
+    return NextResponse.json({ ...response, cached: false })
 }
