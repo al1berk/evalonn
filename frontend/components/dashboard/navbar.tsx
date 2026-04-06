@@ -9,6 +9,7 @@ import { authService } from '@/services/auth.service'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { BIST_AVAILABLE, TICKER_NAMES } from '@/config/markets'
+import { resolveAvatarUrl } from '@/lib/avatar'
 
 // Menu Structure
 const menuItems = [
@@ -173,6 +174,11 @@ export function Navbar() {
   const router = useRouter()
   const { user } = useAuthStore()
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
+  const avatarUrl = resolveAvatarUrl({
+    photoURL: user?.photoURL,
+    name: user?.name,
+    email: user?.email,
+  })
 
   const handleLogout = async () => {
     await authService.logout()
@@ -287,8 +293,8 @@ export function Navbar() {
               className="rounded-full bg-secondary/50 hover:bg-secondary text-foreground h-9 w-9"
               onClick={() => setActiveDropdown(activeDropdown === 'profile' ? null : 'profile')}
             >
-              {user?.photoURL ? (
-                <img src={user.photoURL} alt="User" className="h-full w-full rounded-full object-cover" />
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="User" className="h-full w-full rounded-full object-cover" />
               ) : (
                 <div className="h-full w-full rounded-full bg-gradient-to-br from-primary to-chart-5 flex items-center justify-center text-xs font-bold text-white">
                   {user?.name?.[0] || 'U'}
@@ -303,9 +309,13 @@ export function Navbar() {
                 {/* User Info Header */}
                 <div className="px-3 py-3 border-b border-border/50 mb-1">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-chart-5 flex items-center justify-center text-sm font-bold text-white">
-                      {user?.name?.[0] || 'U'}
-                    </div>
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="User" className="h-10 w-10 rounded-full object-cover" />
+                    ) : (
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-chart-5 flex items-center justify-center text-sm font-bold text-white">
+                        {user?.name?.[0] || 'U'}
+                      </div>
+                    )}
                     <div className="flex flex-col">
                       <span className="font-semibold text-sm">{user?.name || 'User'}</span>
                       <span className="text-xs text-muted-foreground">{user?.email}</span>
@@ -314,7 +324,22 @@ export function Navbar() {
                 </div>
 
                 <div className="grid gap-1 py-1">
-                  <button className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-secondary rounded-lg transition-colors">
+                  <button
+                    onClick={() => {
+                      router.push('/profile')
+                      setActiveDropdown(null)
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-secondary rounded-lg transition-colors"
+                  >
+                    Profile
+                  </button>
+                  <button
+                    onClick={() => {
+                      router.push('/settings')
+                      setActiveDropdown(null)
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-secondary rounded-lg transition-colors"
+                  >
                     Settings and billing
                   </button>
                   <button className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-secondary rounded-lg transition-colors flex justify-between items-center">

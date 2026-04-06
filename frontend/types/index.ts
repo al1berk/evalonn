@@ -28,6 +28,34 @@ export interface User {
     createdAt: string
 }
 
+export type AppLanguage = 'en' | 'tr' | 'de'
+export type AppCurrency = 'USD' | 'TRY' | 'EUR'
+export type AppTheme = 'dark' | 'light'
+export type UserPlan = 'Free' | 'Pro Trader'
+
+export interface NotificationPreferences {
+    priceAlerts: boolean
+    newsDigest: boolean
+}
+
+export interface UserPreferences {
+    language: AppLanguage
+    currency: AppCurrency
+    theme: AppTheme
+    notifications: NotificationPreferences
+}
+
+export interface UserProfile {
+    uid: string
+    email: string
+    displayName: string
+    photoURL: string | null
+    plan: UserPlan
+    createdAt: string
+    updatedAt: string
+    preferences: UserPreferences
+}
+
 export interface PriceHistory {
     timestamp: number
     open: number
@@ -75,4 +103,54 @@ export interface WatchlistItem {
     change: number
     changePercent: number
     priceHistory: PriceBar[]
+}
+
+export type MarketListView = 'markets' | 'screener'
+export type ListSortDirection = 'asc' | 'desc'
+
+export type MarketListSortField =
+    | 'ticker'
+    | 'price'
+    | 'changePct'
+    | 'changeVal'
+    | 'high'
+    | 'low'
+    | 'vol'
+    | 'rating'
+    | 'marketCap'
+    | 'pe'
+    | 'eps'
+    | 'sector'
+
+export interface MarketListItem {
+    ticker: string
+    name: string
+    price: number | null
+    changePct: number | null
+    changeVal: number | null
+    high: number | null
+    low: number | null
+    vol: number | null
+    rating: string
+    marketCap?: number | null
+    pe?: number | null
+    eps?: number | null
+    sector?: string | null
+}
+
+export interface MarketListQuery {
+    view?: MarketListView
+    limit?: number
+    cursor?: string | number
+    sortBy?: MarketListSortField
+    sortDir?: ListSortDirection
+    q?: string
+}
+
+export interface PaginatedListResponse<T> {
+    items: T[]
+    total: number
+    nextCursor: string | null
+    hasMore: boolean
+    snapshotAt: string
 }

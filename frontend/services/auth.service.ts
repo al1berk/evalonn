@@ -30,6 +30,7 @@ const mapFirebaseUserToAppUser = (firebaseUser: FirebaseUser): User => {
         id: firebaseUser.uid,
         email: firebaseUser.email || '',
         name: firebaseUser.displayName || undefined,
+        photoURL: firebaseUser.photoURL || undefined,
         createdAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
     }
 }
