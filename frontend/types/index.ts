@@ -104,3 +104,53 @@ export interface WatchlistItem {
     changePercent: number
     priceHistory: PriceBar[]
 }
+
+export type MarketListView = 'markets' | 'screener'
+export type ListSortDirection = 'asc' | 'desc'
+
+export type MarketListSortField =
+    | 'ticker'
+    | 'price'
+    | 'changePct'
+    | 'changeVal'
+    | 'high'
+    | 'low'
+    | 'vol'
+    | 'rating'
+    | 'marketCap'
+    | 'pe'
+    | 'eps'
+    | 'sector'
+
+export interface MarketListItem {
+    ticker: string
+    name: string
+    price: number | null
+    changePct: number | null
+    changeVal: number | null
+    high: number | null
+    low: number | null
+    vol: number | null
+    rating: string
+    marketCap?: number | null
+    pe?: number | null
+    eps?: number | null
+    sector?: string | null
+}
+
+export interface MarketListQuery {
+    view?: MarketListView
+    limit?: number
+    cursor?: string | number
+    sortBy?: MarketListSortField
+    sortDir?: ListSortDirection
+    q?: string
+}
+
+export interface PaginatedListResponse<T> {
+    items: T[]
+    total: number
+    nextCursor: string | null
+    hasMore: boolean
+    snapshotAt: string
+}

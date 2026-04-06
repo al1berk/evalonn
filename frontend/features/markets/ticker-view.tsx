@@ -2,12 +2,15 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { ArrowLeft, Loader2, Maximize2, RefreshCw } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { ArrowLeft, Loader2, Maximize2, RefreshCw, TrendingUp, TrendingDown, Clock, ArrowUp, ArrowDown, BarChart3, Calendar, Star, Bell, Share2, AlertCircle, LineChart } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePrices } from '@/hooks/use-prices';
 import { cn } from '@/lib/utils';
+import { TICKER_NAMES } from '@/config/markets';
 import type { Timeframe } from '@/types';
 
 interface TickerViewProps {
@@ -35,6 +38,21 @@ const getPeriodLabel = (tf: Timeframe): string => {
         case '5m': case '1m': return 'Daily';
         default: return 'Period';
     }
+};
+
+const formatYAxisTick = (value: number): string => value.toFixed(2);
+
+const getYAxisWidth = (domain: [number, number] | ['auto', 'auto']): number => {
+    if (!Array.isArray(domain) || typeof domain[0] !== 'number' || typeof domain[1] !== 'number') {
+        return 64;
+    }
+
+    const [min, max] = domain;
+    const samples = [min, max, (min + max) / 2, 0].map((value) => formatYAxisTick(value));
+    const longest = samples.reduce((acc, label) => Math.max(acc, label.length), 0);
+    const estimatedWidth = Math.ceil(longest * 8 + 16);
+
+    return Math.min(96, Math.max(56, estimatedWidth));
 };
 
 export function TickerView({ ticker }: TickerViewProps) {
@@ -67,7 +85,8 @@ export function TickerView({ ticker }: TickerViewProps) {
 
         // Check staleness
         const lastBarDate = new Date(currentBar.t);
-        const daysSinceUpdate = Math.floor((Date.now() - lastBarDate.getTime()) / (1000 * 60 * 60 * 24));
+        const currentTimestamp = new Date().getTime();
+        const daysSinceUpdate = Math.floor((currentTimestamp - lastBarDate.getTime()) / (1000 * 60 * 60 * 24));
         const isStale = daysSinceUpdate > 5;
 
         return { price, change, changePct, isPositive, lastBarDate, isStale, daysSinceUpdate };
@@ -84,18 +103,32 @@ export function TickerView({ ticker }: TickerViewProps) {
         return { high: periodHigh, low: periodLow, vol: lastBar.v };
     }, [data]);
 
-    // Dynamic Y-axis domain with 5% padding
+    // Dynamic Y-axis domain with safe minimum padding for narrow/single-value ranges
     const yDomain = useMemo((): [number, number] | ['auto', 'auto'] => {
         if (!data || data.length === 0) return ['auto', 'auto'];
         const prices = data.flatMap(d => [d.c, d.h, d.l]);
         const min = Math.min(...prices);
         const max = Math.max(...prices);
-        const padding = (max - min) * 0.05;
+        const range = max - min;
+        const valueBasedMinPadding = Math.max(Math.max(Math.abs(min), Math.abs(max), 1) * 0.01, 0.01);
+        const padding = Math.max(range * 0.05, valueBasedMinPadding);
+
+        let lower = min - padding;
+        let upper = max + padding;
+
+        if (upper - lower < 0.02) {
+            const center = (min + max) / 2;
+            lower = center - 0.01;
+            upper = center + 0.01;
+        }
+
         return [
-            Math.floor((min - padding) * 100) / 100,
-            Math.ceil((max + padding) * 100) / 100
+            Math.floor(lower * 100) / 100,
+            Math.ceil(upper * 100) / 100
         ];
     }, [data]);
+
+    const yAxisWidth = useMemo(() => getYAxisWidth(yDomain), [yDomain]);
 
     // Format X axis labels based on timeframe
     const formatXAxis = (tickItem: string) => {
@@ -128,27 +161,39 @@ export function TickerView({ ticker }: TickerViewProps) {
                     <ArrowLeft size={20} />
                 </Link>
                 <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-secondary flex items-center justify-center text-sm font-bold text-muted-foreground shadow-sm">
-                        {ticker[0]}
+                    <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-lg font-bold text-primary shadow-sm border border-primary/10">
+                        {ticker.slice(0, 2)}
                     </div>
                     <div className="flex flex-col">
-                        <h1 className="text-xl font-bold tracking-tight leading-tight">{ticker}</h1>
-                        <span className="text-xs text-muted-foreground">Borsa Istanbul</span>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-xl font-bold tracking-tight leading-tight">{ticker}</h1>
+                            {headerStats?.isStale && (
+                                <Badge variant="outline" className="text-amber-500 border-amber-500/30 text-[10px] px-1.5 py-0">
+                                    <Clock size={10} className="mr-1" />
+                                    {headerStats.daysSinceUpdate}d ago
+                                </Badge>
+                            )}
+                        </div>
+                        <span className="text-sm text-muted-foreground">{TICKER_NAMES[ticker] || 'Borsa Istanbul'}</span>
                     </div>
                 </div>
 
                 {headerStats && (
-                    <div className="ml-auto flex items-center gap-6">
+                    <div className="ml-auto flex items-center gap-4">
                         <div className="flex flex-col items-end">
-                            <span className="text-2xl font-bold tracking-tight font-mono">{headerStats.price.toFixed(2)}</span>
-                            <span className={cn("text-sm font-medium flex items-center gap-1", headerStats.isPositive ? "text-chart-2" : "text-destructive")}>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-3xl font-bold tracking-tight font-mono">{headerStats.price.toFixed(2)}</span>
+                                <span className="text-sm text-muted-foreground">TRY</span>
+                            </div>
+                            <div className={cn(
+                                "flex items-center gap-1.5 text-sm font-semibold px-2 py-0.5 rounded-md",
+                                headerStats.isPositive 
+                                    ? "text-chart-2 bg-chart-2/10" 
+                                    : "text-destructive bg-destructive/10"
+                            )}>
+                                {headerStats.isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                                 {headerStats.isPositive ? '+' : ''}{headerStats.change.toFixed(2)} ({headerStats.isPositive ? '+' : ''}{headerStats.changePct.toFixed(2)}%)
-                            </span>
-                            {headerStats.isStale && (
-                                <span className="text-xs text-amber-500 mt-1">
-                                    Data: {headerStats.lastBarDate.toLocaleDateString('tr-TR')} ({headerStats.daysSinceUpdate} days ago)
-                                </span>
-                            )}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -156,32 +201,55 @@ export function TickerView({ ticker }: TickerViewProps) {
 
             <div className="flex-1 p-6 flex flex-col gap-6 max-w-7xl mx-auto w-full">
                 {/* Stats Row */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Card className="p-4 bg-card border-none rounded-xl shadow-sm flex flex-col gap-1">
-                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{periodLabel} High</span>
-                        <span className="text-lg font-mono">{chartStats?.high?.toFixed(2) || '-'}</span>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <Card className="p-4 bg-card/50 border border-border/50 rounded-xl flex items-start gap-3 group hover:bg-card/80 transition-colors">
+                        <div className="h-9 w-9 rounded-lg bg-chart-2/10 flex items-center justify-center flex-shrink-0">
+                            <ArrowUp size={16} className="text-chart-2" />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-medium text-muted-foreground">{periodLabel} High</span>
+                            <span className="text-lg font-semibold font-mono truncate">{chartStats?.high?.toFixed(2) || '—'}</span>
+                        </div>
                     </Card>
-                    <Card className="p-4 bg-card border-none rounded-xl shadow-sm flex flex-col gap-1">
-                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{periodLabel} Low</span>
-                        <span className="text-lg font-mono">{chartStats?.low?.toFixed(2) || '-'}</span>
+                    <Card className="p-4 bg-card/50 border border-border/50 rounded-xl flex items-start gap-3 group hover:bg-card/80 transition-colors">
+                        <div className="h-9 w-9 rounded-lg bg-destructive/10 flex items-center justify-center flex-shrink-0">
+                            <ArrowDown size={16} className="text-destructive" />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-medium text-muted-foreground">{periodLabel} Low</span>
+                            <span className="text-lg font-semibold font-mono truncate">{chartStats?.low?.toFixed(2) || '—'}</span>
+                        </div>
                     </Card>
-                    <Card className="p-4 bg-card border-none rounded-xl shadow-sm flex flex-col gap-1">
-                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Volume (Last Bar)</span>
-                        <span className="text-lg">{chartStats?.vol?.toLocaleString() || '-'}</span>
+                    <Card className="p-4 bg-card/50 border border-border/50 rounded-xl flex items-start gap-3 group hover:bg-card/80 transition-colors">
+                        <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <BarChart3 size={16} className="text-primary" />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-medium text-muted-foreground">Volume</span>
+                            <span className="text-lg font-semibold truncate">{chartStats?.vol?.toLocaleString('tr-TR') || '—'}</span>
+                        </div>
                     </Card>
-                    <Card className="p-4 bg-card border-none rounded-xl shadow-sm flex flex-col gap-1">
-                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Timeframe</span>
-                        <span className="text-lg uppercase">{timeframe}</span>
+                    <Card className="p-4 bg-card/50 border border-border/50 rounded-xl flex items-start gap-3 group hover:bg-card/80 transition-colors">
+                        <div className="h-9 w-9 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
+                            <Calendar size={16} className="text-muted-foreground" />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-medium text-muted-foreground">Periyot</span>
+                            <span className="text-lg font-semibold uppercase">{timeframe}</span>
+                        </div>
                     </Card>
                 </div>
 
                 {/* Stale Data Warning */}
                 {headerStats?.isStale && (
-                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 flex items-center gap-2">
-                        <span className="text-amber-500">&#9888;</span>
-                        <span className="text-sm text-amber-200">
-                            Bu timeframe icin guncel veri yok. Son veri tarihi: {headerStats.lastBarDate.toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric' })}
-                        </span>
+                    <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg px-4 py-2.5 flex items-center gap-3">
+                        <Clock size={16} className="text-amber-500 flex-shrink-0" />
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm">
+                            <span className="text-amber-400 font-medium">Veriler guncel degil</span>
+                            <span className="text-muted-foreground">
+                                Son guncelleme: {headerStats.lastBarDate.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </span>
+                        </div>
                     </div>
                 )}
 
@@ -203,40 +271,113 @@ export function TickerView({ ticker }: TickerViewProps) {
                             </TabsList>
                         </Tabs>
 
-                        <div className="flex items-center gap-2">
-                            <button
+                        <div className="flex items-center gap-1">
+                            {/* Action Buttons */}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 disabled:opacity-50"
+                                disabled
+                                title="Yakinda aktif olacak"
+                            >
+                                <Star size={16} />
+                                <span className="ml-1.5 text-xs hidden sm:inline">Watchlist</span>
+                            </Button>
+
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-50"
+                                disabled
+                                title="Yakinda aktif olacak"
+                            >
+                                <Bell size={16} />
+                                <span className="ml-1.5 text-xs hidden sm:inline">Alert</span>
+                            </Button>
+
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-muted-foreground hover:text-foreground disabled:opacity-50"
+                                disabled
+                                title="Yakinda aktif olacak"
+                            >
+                                <Share2 size={16} />
+                                <span className="ml-1.5 text-xs hidden sm:inline">Paylas</span>
+                            </Button>
+
+                            <div className="w-px h-5 bg-border mx-1" />
+
+                            {/* Chart Tools */}
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground"
                                 onClick={() => refetch()}
-                                className="p-2 rounded-md hover:bg-secondary text-muted-foreground transition-colors"
-                                title="Refresh Data"
+                                disabled={isLoading}
+                                title="Yenile"
                             >
                                 <RefreshCw size={16} className={cn(isLoading && "animate-spin")} />
-                            </button>
-                            <button className="p-2 rounded-md hover:bg-secondary text-muted-foreground transition-colors" title="Fullscreen">
+                            </Button>
+
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-muted-foreground disabled:opacity-50" 
+                                disabled
+                                title="Tam ekran - Yakinda"
+                            >
                                 <Maximize2 size={16} />
-                            </button>
+                            </Button>
                         </div>
                     </div>
 
                     {/* Chart Area */}
                     <div className="flex-1 w-full h-full relative p-4 min-h-[400px]">
                         {isLoading ? (
-                            <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-10 transition-all duration-300">
-                                <div className="flex flex-col items-center gap-4">
-                                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                                    <span className="text-sm font-medium text-muted-foreground">Loading chart data...</span>
+                            <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10 transition-all duration-300">
+                                <div className="flex flex-col items-center gap-3">
+                                    <div className="relative">
+                                        <div className="h-12 w-12 rounded-full border-2 border-primary/20" />
+                                        <Loader2 className="absolute inset-0 m-auto w-6 h-6 animate-spin text-primary" />
+                                    </div>
+                                    <div className="flex flex-col items-center gap-1">
+                                        <span className="text-sm font-medium">Grafik yukleniyor</span>
+                                        <span className="text-xs text-muted-foreground">{ticker} - {timeframe.toUpperCase()}</span>
+                                    </div>
                                 </div>
                             </div>
                         ) : error ? (
                             <div className="absolute inset-0 flex items-center justify-center">
-                                <span className="text-sm text-destructive">Failed to load chart data. Please try again.</span>
+                                <div className="flex flex-col items-center gap-3 max-w-xs text-center">
+                                    <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                                        <AlertCircle className="w-6 h-6 text-destructive" />
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-sm font-medium">Veri yuklenemedi</span>
+                                        <span className="text-xs text-muted-foreground">Lutfen daha sonra tekrar deneyin veya farkli bir periyot secin</span>
+                                    </div>
+                                    <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-2">
+                                        <RefreshCw size={14} className="mr-1.5" />
+                                        Tekrar Dene
+                                    </Button>
+                                </div>
                             </div>
                         ) : data.length === 0 ? (
                             <div className="absolute inset-0 flex items-center justify-center">
-                                <span className="text-sm text-muted-foreground">No data available for this timeframe</span>
+                                <div className="flex flex-col items-center gap-3 max-w-xs text-center">
+                                    <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center">
+                                        <LineChart className="w-6 h-6 text-muted-foreground" />
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-sm font-medium">Veri bulunamadi</span>
+                                        <span className="text-xs text-muted-foreground">Bu periyot icin {ticker} verisi mevcut degil</span>
+                                    </div>
+                                </div>
                             </div>
                         ) : (
                             <ResponsiveContainer width="100%" height={400} className="min-h-[400px]">
-                                <AreaChart data={data} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                                <AreaChart data={data} margin={{ top: 10, right: 8, left: 8, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="colorPricePos" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
@@ -264,10 +405,10 @@ export function TickerView({ ticker }: TickerViewProps) {
                                         fontSize={12}
                                         tickLine={false}
                                         axisLine={false}
-                                        dx={-10}
-                                        tickFormatter={(value) => typeof value === 'number' ? value.toFixed(2) : value}
+                                        width={yAxisWidth}
+                                        tickFormatter={(value) => typeof value === 'number' ? formatYAxisTick(value) : value}
                                     />
-                                    <Tooltip
+                                    <RechartsTooltip
                                         contentStyle={{
                                             backgroundColor: '#111111',
                                             borderColor: '#333333',
@@ -276,10 +417,10 @@ export function TickerView({ ticker }: TickerViewProps) {
                                         }}
                                         itemStyle={{ color: '#ffffff' }}
                                         labelStyle={{ color: '#888888', marginBottom: '4px' }}
-                                        labelFormatter={(label: any) => formatTooltipDate(label as string)}
-                                        formatter={(value: any, name: any) => [
-                                            typeof value === 'number' ? value.toFixed(2) : value,
-                                            name === 'c' ? 'Price' : name
+                                        labelFormatter={(label) => formatTooltipDate(String(label))}
+                                        formatter={(value, name) => [
+                                            typeof value === 'number' ? value.toFixed(2) : String(value ?? ''),
+                                            name === 'c' ? 'Price' : String(name ?? '')
                                         ]}
                                     />
                                     <Area
