@@ -1,7 +1,8 @@
 'use client'
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { BIST_POPULAR, BIST_AVAILABLE, TICKER_NAMES } from '@/config/markets'
+import { BIST_AVAILABLE, TICKER_NAMES } from '@/config/markets'
+import { useUserWatchlist } from '@/hooks/use-user-watchlist'
 
 export interface DashboardTicker {
     ticker: string
@@ -10,6 +11,9 @@ export interface DashboardTicker {
     previousPrice: number
     change: number
     changePercent: number
+    high: number | null
+    low: number | null
+    vol: number | null
 }
 
 interface BatchResponse {
@@ -39,6 +43,8 @@ export function isMarketCurrentlyOpen(): boolean {
 }
 
 async function fetchDashboardData(tickers: string[]): Promise<DashboardTicker[]> {
+    if (tickers.length === 0) return []
+
     const tickersParam = tickers.join(',')
     const url = `/api/prices/batch?tickers=${tickersParam}&timeframe=1d&limit=2` // Optimized: only last 2 bars needed
 
@@ -49,19 +55,27 @@ async function fetchDashboardData(tickers: string[]): Promise<DashboardTicker[]>
 
     const result: BatchResponse = await response.json()
 
-    return result.data.map((item) => {
-        const currentPrice = item.current?.c ?? 0
-        const previousPrice = item.previous?.c ?? currentPrice
+    const byTicker = new Map(
+        result.data.map((item) => [item.ticker, item] as const)
+    )
+
+    return tickers.map((ticker) => {
+        const item = byTicker.get(ticker)
+        const currentPrice = item?.current?.c ?? 0
+        const previousPrice = item?.previous?.c ?? currentPrice
         const change = currentPrice - previousPrice
         const changePercent = previousPrice > 0 ? (change / previousPrice) * 100 : 0
 
         return {
-            ticker: item.ticker,
-            name: TICKER_NAMES[item.ticker] || item.ticker,
+            ticker,
+            name: TICKER_NAMES[ticker] || ticker,
             price: currentPrice,
             previousPrice,
             change,
             changePercent,
+            high: item?.current?.h ?? null,
+            low: item?.current?.l ?? null,
+            vol: item?.current?.v ?? null,
         }
     })
 }
@@ -71,14 +85,22 @@ async function fetchDashboardData(tickers: string[]): Promise<DashboardTicker[]>
  * Uses batch endpoint to prevent rate limiting
  */
 export function useDashboardWatchlist() {
-    const watchlistTickers = BIST_POPULAR.slice(0, 6) // Top 6 popular tickers
+    const { data: userWatchlist, isLoading: isWatchlistLoading } = useUserWatchlist()
+    const watchlistTickers = userWatchlist?.tickers ?? []
 
-    return useQuery({
-        queryKey: ['dashboard-watchlist'],
+    const query = useQuery({
+        queryKey: ['dashboard-watchlist', watchlistTickers.join(',')],
         queryFn: () => fetchDashboardData(watchlistTickers),
+        enabled: watchlistTickers.length > 0,
         staleTime: 1000 * 30, // 30 seconds
         refetchInterval: () => isMarketCurrentlyOpen() ? 1000 * 60 : false, // 1 min when open, stop when closed
     })
+
+    return {
+        ...query,
+        data: query.data ?? [],
+        isLoading: isWatchlistLoading || query.isLoading,
+    }
 }
 
 /**

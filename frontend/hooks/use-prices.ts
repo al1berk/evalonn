@@ -6,12 +6,12 @@ import {
     fetchMultipleTickers,
     calculateChange,
     getLatestPrice,
-    WATCHLIST_TICKERS,
     TICKER_NAMES,
     Timeframe,
 } from '@/services/price.service'
 import { WatchlistItem } from '@/types'
 import { isMarketCurrentlyOpen } from '@/hooks/use-dashboard-data'
+import { useUserWatchlist } from '@/hooks/use-user-watchlist'
 
 /**
  * Hook to fetch price data for a single ticker
@@ -54,13 +54,20 @@ export function usePortfolioChart(period: '1D' | '1W' | '1M' = '1D') {
  * Uses 5m timeframe for more up-to-date prices
  */
 export function useWatchlist() {
-    return useQuery({
-        queryKey: ['watchlist'],
-        queryFn: async (): Promise<WatchlistItem[]> => {
-            // Use 5m timeframe with enough bars for a full trading day (~100 bars)
-            const priceMap = await fetchMultipleTickers(WATCHLIST_TICKERS, '5m', 100)
+    const { data: userWatchlist, isLoading: isWatchlistLoading } = useUserWatchlist()
+    const tickers = userWatchlist?.tickers ?? []
 
-            return WATCHLIST_TICKERS.map((ticker) => {
+    const watchlistQuery = useQuery({
+        queryKey: ['watchlist', tickers.join(',')],
+        queryFn: async (): Promise<WatchlistItem[]> => {
+            if (tickers.length === 0) {
+                return []
+            }
+
+            // Use 5m timeframe with enough bars for a full trading day (~100 bars)
+            const priceMap = await fetchMultipleTickers(tickers, '5m', 100)
+
+            return tickers.map((ticker) => {
                 const priceHistory = priceMap.get(ticker) || []
                 const { change, changePercent } = calculateChange(priceHistory)
                 const price = getLatestPrice(priceHistory)
@@ -75,7 +82,14 @@ export function useWatchlist() {
                 }
             })
         },
+        enabled: tickers.length > 0,
         staleTime: 1000 * 30, // 30 seconds for more frequent updates
         refetchInterval: () => isMarketCurrentlyOpen() ? 1000 * 60 : false, // 1 min when open, stop when closed
     })
+
+    return {
+        ...watchlistQuery,
+        data: watchlistQuery.data ?? [],
+        isLoading: isWatchlistLoading || watchlistQuery.isLoading,
+    }
 }

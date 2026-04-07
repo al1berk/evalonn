@@ -9,6 +9,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePrices } from '@/hooks/use-prices';
+import { useAuthStore } from '@/store/use-auth-store';
+import {
+    useAddWatchlistTicker,
+    useRemoveWatchlistTicker,
+    useUserWatchlist,
+} from '@/hooks/use-user-watchlist';
 import { cn } from '@/lib/utils';
 import { TICKER_NAMES } from '@/config/markets';
 import type { Timeframe } from '@/types';
@@ -57,6 +63,27 @@ const getYAxisWidth = (domain: [number, number] | ['auto', 'auto']): number => {
 
 export function TickerView({ ticker }: TickerViewProps) {
     const [timeframe, setTimeframe] = useState<Timeframe>('1d');
+    const { isAuthenticated } = useAuthStore();
+    const { data: userWatchlist } = useUserWatchlist();
+    const addTickerMutation = useAddWatchlistTicker();
+    const removeTickerMutation = useRemoveWatchlistTicker();
+    const isWatchlistMutating =
+        addTickerMutation.isPending || removeTickerMutation.isPending;
+    const isInWatchlist =
+        userWatchlist?.tickers.includes(ticker.toUpperCase()) ?? false;
+
+    const handleToggleWatchlist = async () => {
+        if (!isAuthenticated) {
+            return;
+        }
+
+        if (isInWatchlist) {
+            await removeTickerMutation.mutateAsync(ticker);
+            return;
+        }
+
+        await addTickerMutation.mutateAsync(ticker);
+    };
 
     // Header data: always fetch daily (last 2 bars) for consistent price/change display
     const { data: dailyData } = usePrices(ticker, '1d', 2);
@@ -68,7 +95,7 @@ export function TickerView({ ticker }: TickerViewProps) {
         getTimeframeLimit(timeframe)
     );
 
-    const data = chartPriceData?.data || [];
+    const data = useMemo(() => chartPriceData?.data ?? [], [chartPriceData]);
 
     // Header stats: always based on daily data (independent of timeframe)
     const headerStats = useMemo(() => {
@@ -276,12 +303,31 @@ export function TickerView({ ticker }: TickerViewProps) {
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 px-2 text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 disabled:opacity-50"
-                                disabled
-                                title="Yakinda aktif olacak"
+                                className={cn(
+                                    'h-8 px-2 hover:bg-amber-500/10 disabled:opacity-50',
+                                    isInWatchlist
+                                        ? 'text-amber-500'
+                                        : 'text-muted-foreground hover:text-amber-500'
+                                )}
+                                onClick={() => {
+                                    void handleToggleWatchlist();
+                                }}
+                                disabled={!isAuthenticated || isWatchlistMutating}
+                                title={
+                                    isAuthenticated
+                                        ? isInWatchlist
+                                            ? 'Watchlistten cikar'
+                                            : 'Watchliste ekle'
+                                        : 'Watchlist icin giris gerekli'
+                                }
                             >
-                                <Star size={16} />
-                                <span className="ml-1.5 text-xs hidden sm:inline">Watchlist</span>
+                                <Star
+                                    size={16}
+                                    fill={isInWatchlist ? 'currentColor' : 'none'}
+                                />
+                                <span className="ml-1.5 text-xs hidden sm:inline">
+                                    {isInWatchlist ? 'Added' : 'Watchlist'}
+                                </span>
                             </Button>
 
                             <Button

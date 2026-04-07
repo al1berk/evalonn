@@ -1,11 +1,10 @@
 import { PriceResponse, PriceBar, Timeframe, FetchPricesParams } from '@/types'
-import { BIST_POPULAR, TICKER_NAMES } from '@/config/markets'
+import { TICKER_NAMES } from '@/config/markets'
 
 export type { Timeframe }
 
 // Re-export from central config for backward compatibility
 export { TICKER_NAMES }
-export const WATCHLIST_TICKERS = [...BIST_POPULAR.slice(0, 4)] // THYAO, GARAN, ASELS, EREGL
 
 /**
  * Calculate start date and fetch limit to get recent data
@@ -140,4 +139,3 @@ export function getLatestPrice(data: PriceBar[]): number {
     if (data.length === 0) return 0
     return data[data.length - 1].c
 }
-

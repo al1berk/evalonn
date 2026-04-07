@@ -1,10 +1,17 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+    type ChangeEvent,
+} from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select-native'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
     ChevronDown,
@@ -21,6 +28,11 @@ import {
 import { cn } from '@/lib/utils'
 import { useInfiniteLoad } from '@/hooks/use-infinite-load'
 import { useMarketList } from '@/hooks/use-market-list'
+import {
+    useDeleteScreenerPreset,
+    useSaveScreenerPreset,
+    useScreenerPresets,
+} from '@/hooks/use-screener-presets'
 import type { ListSortDirection, MarketListSortField } from '@/types'
 
 interface ScreenerViewProps {
@@ -101,6 +113,13 @@ export function ScreenerView({ isWidget = false }: ScreenerViewProps) {
     const [debouncedSearch, setDebouncedSearch] = useState('')
     const [sortField, setSortField] = useState<MarketListSortField>('changePct')
     const [sortDirection, setSortDirection] = useState<ListSortDirection>('desc')
+    const [selectedPresetId, setSelectedPresetId] = useState('')
+    const [presetName, setPresetName] = useState('')
+    const [presetFeedback, setPresetFeedback] = useState<string | null>(null)
+
+    const { data: screenerPresets = [] } = useScreenerPresets()
+    const savePresetMutation = useSaveScreenerPreset()
+    const deletePresetMutation = useDeleteScreenerPreset()
 
     useEffect(() => {
         const timeout = setTimeout(() => {
@@ -150,6 +169,77 @@ export function ScreenerView({ isWidget = false }: ScreenerViewProps) {
 
         setSortField(field)
         setSortDirection('desc')
+    }
+
+    const handleSavePreset = async () => {
+        setPresetFeedback(null)
+        const normalizedName = presetName.trim()
+        if (!normalizedName) {
+            setPresetFeedback('Preset name is required.')
+            return
+        }
+
+        try {
+            const nextPresets = await savePresetMutation.mutateAsync({
+                name: normalizedName,
+                search: searchTerm.trim(),
+                sortBy: sortField,
+                sortDir: sortDirection,
+            })
+
+            const savedPreset = nextPresets.find(
+                (preset) =>
+                    preset.name.toLocaleLowerCase('tr-TR') ===
+                    normalizedName.toLocaleLowerCase('tr-TR')
+            )
+            if (savedPreset) {
+                setSelectedPresetId(savedPreset.id)
+            }
+            setPresetFeedback('Preset saved.')
+        } catch (mutationError) {
+            setPresetFeedback(
+                mutationError instanceof Error
+                    ? mutationError.message
+                    : 'Preset could not be saved.'
+            )
+        }
+    }
+
+    const handleDeletePreset = async () => {
+        if (!selectedPresetId) return
+        setPresetFeedback(null)
+        try {
+            await deletePresetMutation.mutateAsync(selectedPresetId)
+            setSelectedPresetId('')
+            setPresetName('')
+            setPresetFeedback('Preset deleted.')
+        } catch (mutationError) {
+            setPresetFeedback(
+                mutationError instanceof Error
+                    ? mutationError.message
+                    : 'Preset could not be deleted.'
+            )
+        }
+    }
+
+    const handlePresetChange = (event: ChangeEvent<HTMLSelectElement>) => {
+        const presetId = event.target.value
+        setSelectedPresetId(presetId)
+        setPresetFeedback(null)
+
+        if (!presetId) {
+            setPresetName('')
+            return
+        }
+
+        const selected = screenerPresets.find((preset) => preset.id === presetId)
+        if (!selected) return
+
+        setSearchTerm(selected.search)
+        setDebouncedSearch(selected.search)
+        setSortField(selected.sortBy)
+        setSortDirection(selected.sortDir)
+        setPresetName(selected.name)
     }
 
     if (isWidget) {
@@ -280,6 +370,56 @@ export function ScreenerView({ isWidget = false }: ScreenerViewProps) {
                     <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
                         <SlidersHorizontal size={16} />
                     </Button>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                    <Select
+                        value={selectedPresetId}
+                        onChange={handlePresetChange}
+                        className="h-9 w-[220px] bg-secondary/50 border-border text-sm"
+                    >
+                        <option value="">Select preset</option>
+                        {screenerPresets.map((preset) => (
+                            <option key={preset.id} value={preset.id}>
+                                {preset.name}
+                            </option>
+                        ))}
+                    </Select>
+
+                    <Input
+                        value={presetName}
+                        onChange={(event) => setPresetName(event.target.value)}
+                        placeholder="Preset name"
+                        className="h-9 w-[200px]"
+                    />
+
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        className="h-9"
+                        onClick={() => {
+                            void handleSavePreset()
+                        }}
+                        disabled={savePresetMutation.isPending}
+                    >
+                        {savePresetMutation.isPending ? 'Saving...' : 'Save Preset'}
+                    </Button>
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9"
+                        onClick={() => {
+                            void handleDeletePreset()
+                        }}
+                        disabled={!selectedPresetId || deletePresetMutation.isPending}
+                    >
+                        {deletePresetMutation.isPending ? 'Deleting...' : 'Delete Preset'}
+                    </Button>
+
+                    {presetFeedback && (
+                        <span className="text-xs text-muted-foreground">{presetFeedback}</span>
+                    )}
                 </div>
             </div>
 

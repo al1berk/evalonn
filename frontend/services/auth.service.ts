@@ -1,4 +1,5 @@
 import { User } from '@/types'
+import type { FirebaseError } from 'firebase/app'
 import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
@@ -24,6 +25,15 @@ interface AuthResponse {
     user: User
 }
 
+function isFirebaseError(error: unknown): error is FirebaseError {
+    return (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        typeof (error as { code?: unknown }).code === 'string'
+    )
+}
+
 // Convert Firebase User to App User
 const mapFirebaseUserToAppUser = (firebaseUser: FirebaseUser): User => {
     return {
@@ -36,8 +46,8 @@ const mapFirebaseUserToAppUser = (firebaseUser: FirebaseUser): User => {
 }
 
 // Firebase error messages to user-friendly messages
-const getErrorMessage = (error: any): string => {
-    const errorCode = error.code
+const getErrorMessage = (error: unknown): string => {
+    const errorCode = isFirebaseError(error) ? error.code : undefined
     switch (errorCode) {
         case 'auth/email-already-in-use':
             return 'Email already exists'
@@ -58,7 +68,7 @@ const getErrorMessage = (error: any): string => {
         case 'auth/network-request-failed':
             return 'Network error. Please check your connection'
         default:
-            return error.message || 'An error occurred'
+            return error instanceof Error ? error.message : 'An error occurred'
     }
 }
 
@@ -75,7 +85,7 @@ export const authService = {
                 credentials.password
             )
             return { user: mapFirebaseUserToAppUser(userCredential.user) }
-        } catch (error: any) {
+        } catch (error: unknown) {
             throw new Error(getErrorMessage(error))
         }
     },
@@ -104,7 +114,7 @@ export const authService = {
                     name: data.name,
                 },
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             throw new Error(getErrorMessage(error))
         }
     },
@@ -116,7 +126,7 @@ export const authService = {
         try {
             const result = await signInWithPopup(auth, googleProvider)
             return { user: mapFirebaseUserToAppUser(result.user) }
-        } catch (error: any) {
+        } catch (error: unknown) {
             throw new Error(getErrorMessage(error))
         }
     },
@@ -128,7 +138,7 @@ export const authService = {
         try {
             const result = await signInWithPopup(auth, appleProvider)
             return { user: mapFirebaseUserToAppUser(result.user) }
-        } catch (error: any) {
+        } catch (error: unknown) {
             throw new Error(getErrorMessage(error))
         }
     },
@@ -139,7 +149,7 @@ export const authService = {
     async logout(): Promise<void> {
         try {
             await signOut(auth)
-        } catch (error: any) {
+        } catch (error: unknown) {
             throw new Error(getErrorMessage(error))
         }
     },

@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Search, Bell, Menu, ChevronDown, Monitor, BarChart2, GitBranch, Cpu, Globe, List, Activity, Users, FileText, Newspaper } from 'lucide-react'
+import { Search, Bell, Menu, ChevronDown, Monitor, BarChart2, GitBranch, Cpu, Globe, List, Activity, Users, Newspaper } from 'lucide-react'
 import { useAuthStore } from '@/store/use-auth-store'
 import { authService } from '@/services/auth.service'
 import { Button } from '@/components/ui/button'
@@ -67,6 +67,7 @@ function TickerSearch() {
       .filter(item => item.searchStr.includes(q))
       .slice(0, 8)
   }, [query])
+  const selectedResult = results[selectedIndex] || null
 
   const handleSelect = useCallback((ticker: string) => {
     router.push(`/markets/${ticker}`)
@@ -82,9 +83,9 @@ function TickerSearch() {
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setSelectedIndex(i => Math.max(i - 1, 0))
-    } else if (e.key === 'Enter' && results[selectedIndex]) {
+    } else if (e.key === 'Enter' && selectedResult) {
       e.preventDefault()
-      handleSelect(results[selectedIndex].ticker)
+      handleSelect(selectedResult.ticker)
     } else if (e.key === 'Escape') {
       setIsOpen(false)
       inputRef.current?.blur()
@@ -114,9 +115,6 @@ function TickerSearch() {
     return () => document.removeEventListener('keydown', handler)
   }, [])
 
-  // Reset selected index when results change
-  useEffect(() => { setSelectedIndex(0) }, [results])
-
   return (
     <div ref={containerRef} className="relative w-[260px] hidden md:block">
       <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-muted-foreground">
@@ -126,7 +124,11 @@ function TickerSearch() {
         ref={inputRef}
         type="text"
         value={query}
-        onChange={(e) => { setQuery(e.target.value); setIsOpen(true) }}
+        onChange={(e) => {
+          setQuery(e.target.value)
+          setSelectedIndex(0)
+          setIsOpen(true)
+        }}
         onFocus={() => setIsOpen(true)}
         onKeyDown={handleKeyDown}
         placeholder="Search ticker or company..."
@@ -294,6 +296,7 @@ export function Navbar() {
               onClick={() => setActiveDropdown(activeDropdown === 'profile' ? null : 'profile')}
             >
               {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={avatarUrl} alt="User" className="h-full w-full rounded-full object-cover" />
               ) : (
                 <div className="h-full w-full rounded-full bg-gradient-to-br from-primary to-chart-5 flex items-center justify-center text-xs font-bold text-white">
@@ -310,6 +313,7 @@ export function Navbar() {
                 <div className="px-3 py-3 border-b border-border/50 mb-1">
                   <div className="flex items-center gap-3">
                     {avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img src={avatarUrl} alt="User" className="h-10 w-10 rounded-full object-cover" />
                     ) : (
                       <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-chart-5 flex items-center justify-center text-sm font-bold text-white">
@@ -355,7 +359,7 @@ export function Navbar() {
                     Support Center
                   </button>
                   <button className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-secondary rounded-lg transition-colors flex justify-between items-center">
-                    <span>What's new?</span>
+                    <span>What&apos;s new?</span>
                     <span className="bg-destructive text-white text-[10px] px-1.5 py-0.5 rounded-full">11</span>
                   </button>
                 </div>

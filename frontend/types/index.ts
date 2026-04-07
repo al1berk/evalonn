@@ -154,3 +154,33 @@ export interface PaginatedListResponse<T> {
     hasMore: boolean
     snapshotAt: string
 }
+
+export interface UserWatchlist {
+    tickers: string[]
+    updatedAt: string
+}
+
+export type UserAlertOperator = 'gt' | 'lt'
+export type UserAlertStatus = 'active' | 'triggered'
+
+export interface UserAlert {
+    id: string
+    ticker: string
+    operator: UserAlertOperator
+    targetPrice: number
+    status: UserAlertStatus
+    createdAt: string
+    updatedAt: string
+}
+
+export interface UserScreenerPreset {
+    id: string
+    name: string
+    search: string
+    sortBy: MarketListSortField
+    sortDir: ListSortDirection
+    createdAt: string
+    updatedAt: string
+}
+
+export type ScreenerPreset = UserScreenerPreset
