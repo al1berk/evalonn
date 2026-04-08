@@ -113,14 +113,27 @@ function normalizeSortDir(sortDir?: string): ListSortDirection {
     return sortDir === 'asc' ? 'asc' : 'desc'
 }
 
+function normalizeSearchText(value: string): string {
+    return value
+        .trim()
+        .toLocaleLowerCase('tr-TR')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/ı/g, 'i')
+        .replace(/\s+/g, ' ')
+}
+
 function applySearch(items: MarketListItem[], q?: string): MarketListItem[] {
-    const query = q?.trim().toLocaleLowerCase('tr-TR')
+    const query = q ? normalizeSearchText(q) : ''
     if (!query) return items
+    const queryTokens = query.split(' ').filter(Boolean)
 
     return items.filter((item) => {
-        const ticker = item.ticker.toLocaleLowerCase('tr-TR')
-        const name = item.name.toLocaleLowerCase('tr-TR')
-        return ticker.includes(query) || name.includes(query)
+        const searchableTicker = normalizeSearchText(item.ticker)
+        const searchableName = normalizeSearchText(item.name)
+        const searchableContent = `${searchableTicker} ${searchableName}`
+
+        return queryTokens.every((token) => searchableContent.includes(token))
     })
 }
 
