@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useDashboardWatchlist, useMarketMovers } from '@/hooks/use-dashboard-data'
+import { useMarketMovers } from '@/hooks/use-dashboard-data'
 import { cn } from '@/lib/utils'
 import type { DashboardTicker } from '@/hooks/use-dashboard-data'
 

@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { BIST_AVAILABLE, TICKER_NAMES } from '@/config/markets'
 import { useUserWatchlist } from '@/hooks/use-user-watchlist'
+import type { MarketListItem, PaginatedListResponse } from '@/types'
 
 export interface DashboardTicker {
     ticker: string
@@ -25,6 +26,12 @@ interface BatchResponse {
         previous: { t: string; o: number; h: number; l: number; c: number; v: number } | null
         error?: string
     }>
+}
+
+interface MarketSnapshotResponse extends PaginatedListResponse<MarketListItem> {
+    snapshotAgeMs?: number | null
+    stale?: boolean
+    warming?: boolean
 }
 
 /**
@@ -80,6 +87,45 @@ async function fetchDashboardData(tickers: string[]): Promise<DashboardTicker[]>
     })
 }
 
+async function fetchMarketSnapshotData(): Promise<DashboardTicker[]> {
+    const params = new URLSearchParams({
+        view: 'markets',
+        limit: String(BIST_AVAILABLE.length),
+        sortBy: 'changePct',
+        sortDir: 'desc',
+    })
+    const response = await fetch(`/api/markets/list?${params.toString()}`)
+    if (!response.ok) {
+        throw new Error('Failed to fetch market snapshot')
+    }
+
+    const payload: MarketSnapshotResponse = await response.json()
+    const rows = payload.items || []
+
+    return rows
+        .map((item) => {
+            const price = item.price ?? 0
+            const change = item.changeVal ?? 0
+            const previousPrice = price - change
+            const changePercent =
+                item.changePct ??
+                (previousPrice > 0 ? (change / previousPrice) * 100 : 0)
+
+            return {
+                ticker: item.ticker,
+                name: item.name || TICKER_NAMES[item.ticker] || item.ticker,
+                price,
+                previousPrice,
+                change,
+                changePercent,
+                high: item.high ?? null,
+                low: item.low ?? null,
+                vol: item.vol ?? null,
+            }
+        })
+        .filter((item) => item.price > 0)
+}
+
 /**
  * Hook for watchlist data (user's watched tickers)
  * Uses batch endpoint to prevent rate limiting
@@ -109,20 +155,17 @@ export function useDashboardWatchlist() {
  */
 export function useMarketMovers() {
     return useQuery({
-        queryKey: ['market-movers'],
+        queryKey: ['market-snapshot'],
         queryFn: async () => {
-            const data = await fetchDashboardData([...BIST_AVAILABLE])
+            const data = await fetchMarketSnapshotData()
 
             // Sort by changePercent
             const sorted = [...data].sort((a, b) => b.changePercent - a.changePercent)
 
-            // Filter out tickers with no price data
-            const validData = sorted.filter((item) => item.price > 0)
-
             return {
-                topGainers: validData.slice(0, 5),
-                topLosers: validData.slice(-5).reverse(),
-                all: validData,
+                topGainers: sorted.slice(0, 5),
+                topLosers: sorted.slice(-5).reverse(),
+                all: sorted,
             }
         },
         staleTime: 1000 * 60, // 1 minute
@@ -139,7 +182,7 @@ export function useDashboardRefresh() {
     const refresh = async () => {
         await Promise.all([
             queryClient.invalidateQueries({ queryKey: ['dashboard-watchlist'] }),
-            queryClient.invalidateQueries({ queryKey: ['market-movers'] }),
+            queryClient.invalidateQueries({ queryKey: ['market-snapshot'] }),
             queryClient.invalidateQueries({ queryKey: ['prices'] }),
         ])
     }

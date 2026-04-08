@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(response, {
             headers: {
-                'Cache-Control': 'no-store',
+                'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=300',
             },
         })
     } catch (error) {

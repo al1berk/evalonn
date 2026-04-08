@@ -10,15 +10,18 @@ import type {
 
 const EVALON_API_URL = process.env.NEXT_PUBLIC_EVALON_API_URL || 'https://evalon-mu.vercel.app'
 
-const SNAPSHOT_TTL_MS = 60 * 1000
+const SNAPSHOT_FRESH_TTL_MS = 30 * 1000
+const SNAPSHOT_STALE_TTL_MS = 5 * 60 * 1000
+const INITIAL_SNAPSHOT_TIMEOUT_MS = 5500
 const FETCH_TIMEOUT_MS = 15 * 1000
 const FETCH_RETRIES = 2
 const BATCH_SIZE = 10
 const BATCH_DELAY_MS = 150
 const MIN_ACCEPTABLE_SUCCESS_RATE = 0.7
+const FETCH_BARS_LIMIT = 10
 
 export const DEFAULT_MARKET_LIST_LIMIT = 10
-export const MAX_MARKET_LIST_LIMIT = 100
+export const MAX_MARKET_LIST_LIMIT = 200
 export const DEFAULT_MARKET_LIST_SORT_BY: MarketListSortField = 'changePct'
 export const DEFAULT_MARKET_LIST_SORT_DIR: ListSortDirection = 'desc'
 
@@ -34,7 +37,15 @@ interface TickerSnapshotResult {
     previous: PriceBar | null
 }
 
+interface SnapshotState {
+    entry: CacheEntry | null
+    snapshotAgeMs: number | null
+    stale: boolean
+    warming: boolean
+}
+
 let cacheEntry: CacheEntry | null = null
+let refreshPromise: Promise<CacheEntry> | null = null
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -42,6 +53,25 @@ function getStartDate(daysBack: number): string {
     const now = new Date()
     const start = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000)
     return start.toISOString().split('T')[0]
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
+    const timeoutPromise = new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('Operation timed out')), timeoutMs)
+    })
+
+    try {
+        return await Promise.race([promise, timeoutPromise])
+    } finally {
+        if (timeoutId) {
+            clearTimeout(timeoutId)
+        }
+    }
+}
+
+function getSnapshotAgeMs(entry: CacheEntry): number {
+    return Math.max(0, Date.now() - entry.fetchedAt)
 }
 
 function clampLimit(limit?: number): number {
@@ -169,6 +199,71 @@ function getRating(changePct: number | null): string {
     return 'Neutral'
 }
 
+function createEmptyMarketItem(ticker: string): MarketListItem {
+    return {
+        ticker,
+        name: TICKER_NAMES[ticker] || ticker,
+        price: null,
+        changePct: null,
+        changeVal: null,
+        high: null,
+        low: null,
+        vol: null,
+        rating: 'Neutral',
+        marketCap: null,
+        pe: null,
+        eps: null,
+        sector: null,
+    }
+}
+
+function derivePreviousPrice(
+    previous: PriceBar | null,
+    fallback?: MarketListItem
+): number | null {
+    if (previous) return previous.c
+    if (!fallback || fallback.price === null || fallback.changeVal === null) return null
+    return fallback.price - fallback.changeVal
+}
+
+function toMarketListItem(
+    ticker: string,
+    current: PriceBar | null,
+    previous: PriceBar | null,
+    fallback?: MarketListItem
+): MarketListItem {
+    if (!current) {
+        return fallback || createEmptyMarketItem(ticker)
+    }
+
+    const currentPrice = current.c
+    const previousPrice = derivePreviousPrice(previous, fallback)
+    const changeVal =
+        previousPrice !== null
+            ? parseFloat((currentPrice - previousPrice).toFixed(2))
+            : null
+    const changePct =
+        previousPrice !== null && previousPrice > 0
+            ? parseFloat((((currentPrice - previousPrice) / previousPrice) * 100).toFixed(2))
+            : null
+
+    return {
+        ticker,
+        name: TICKER_NAMES[ticker] || ticker,
+        price: parseFloat(currentPrice.toFixed(2)),
+        changePct,
+        changeVal,
+        high: current.h,
+        low: current.l,
+        vol: current.v,
+        rating: getRating(changePct),
+        marketCap: fallback?.marketCap ?? null,
+        pe: fallback?.pe ?? null,
+        eps: fallback?.eps ?? null,
+        sector: fallback?.sector ?? null,
+    }
+}
+
 async function fetchWithTimeout(url: string, timeoutMs = FETCH_TIMEOUT_MS): Promise<Response> {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
@@ -185,7 +280,7 @@ async function fetchWithTimeout(url: string, timeoutMs = FETCH_TIMEOUT_MS): Prom
 }
 
 async function fetchTickerSnapshot(ticker: string, startDate: string): Promise<TickerSnapshotResult> {
-    const url = `${EVALON_API_URL}/v1/prices?ticker=${ticker}&timeframe=1d&limit=2&start=${startDate}`
+    const url = `${EVALON_API_URL}/v1/prices?ticker=${ticker}&timeframe=1d&limit=${FETCH_BARS_LIMIT}&start=${startDate}`
 
     for (let attempt = 0; attempt <= FETCH_RETRIES; attempt++) {
         try {
@@ -220,9 +315,12 @@ async function fetchTickerSnapshot(ticker: string, startDate: string): Promise<T
     return { ticker, current: null, previous: null }
 }
 
-async function buildSnapshot(): Promise<CacheEntry> {
+async function buildSnapshot(previousSnapshot: CacheEntry | null): Promise<CacheEntry> {
     const startDate = getStartDate(14)
     const results: TickerSnapshotResult[] = []
+    const previousItemsByTicker = new Map<string, MarketListItem>(
+        previousSnapshot?.items.map((item) => [item.ticker, item]) ?? []
+    )
 
     for (let i = 0; i < BIST_AVAILABLE.length; i += BATCH_SIZE) {
         const batch = BIST_AVAILABLE.slice(i, i + BATCH_SIZE)
@@ -245,40 +343,18 @@ async function buildSnapshot(): Promise<CacheEntry> {
     const successfulCount = results.filter((item) => item.current !== null).length
     const successRate = successfulCount / BIST_AVAILABLE.length
 
-    if (successRate < MIN_ACCEPTABLE_SUCCESS_RATE && cacheEntry) {
-        return cacheEntry
+    if (successRate < MIN_ACCEPTABLE_SUCCESS_RATE && previousSnapshot) {
+        return previousSnapshot
     }
 
-    const items: MarketListItem[] = results.map((item) => {
-        const currentPrice = item.current?.c ?? null
-        const previousPrice = item.previous?.c ?? null
-
-        const changeVal =
-            currentPrice !== null && previousPrice !== null
-                ? parseFloat((currentPrice - previousPrice).toFixed(2))
-                : null
-
-        const changePct =
-            currentPrice !== null && previousPrice !== null && previousPrice > 0
-                ? parseFloat((((currentPrice - previousPrice) / previousPrice) * 100).toFixed(2))
-                : null
-
-        return {
-            ticker: item.ticker,
-            name: TICKER_NAMES[item.ticker] || item.ticker,
-            price: currentPrice !== null ? parseFloat(currentPrice.toFixed(2)) : null,
-            changePct,
-            changeVal,
-            high: item.current?.h ?? null,
-            low: item.current?.l ?? null,
-            vol: item.current?.v ?? null,
-            rating: getRating(changePct),
-            marketCap: null,
-            pe: null,
-            eps: null,
-            sector: null,
-        }
-    })
+    const items: MarketListItem[] = results.map((item) =>
+        toMarketListItem(
+            item.ticker,
+            item.current,
+            item.previous,
+            previousItemsByTicker.get(item.ticker)
+        )
+    )
 
     return {
         fetchedAt: Date.now(),
@@ -287,29 +363,110 @@ async function buildSnapshot(): Promise<CacheEntry> {
     }
 }
 
-async function getSnapshot(): Promise<CacheEntry> {
-    const now = Date.now()
-
-    if (cacheEntry && now - cacheEntry.fetchedAt < SNAPSHOT_TTL_MS) {
-        return cacheEntry
+function triggerSnapshotRefresh(): Promise<CacheEntry> {
+    if (refreshPromise) {
+        return refreshPromise
     }
 
-    const nextSnapshot = await buildSnapshot()
-    cacheEntry = nextSnapshot
-    return nextSnapshot
+    refreshPromise = buildSnapshot(cacheEntry)
+        .then((nextSnapshot) => {
+            cacheEntry = nextSnapshot
+            return nextSnapshot
+        })
+        .catch((error) => {
+            console.error('Market snapshot refresh failed:', error)
+            if (cacheEntry) {
+                return cacheEntry
+            }
+            throw error
+        })
+        .finally(() => {
+            refreshPromise = null
+        })
+
+    return refreshPromise
+}
+
+async function getSnapshotState(): Promise<SnapshotState> {
+    if (cacheEntry) {
+        const ageMs = getSnapshotAgeMs(cacheEntry)
+
+        if (ageMs <= SNAPSHOT_FRESH_TTL_MS) {
+            return {
+                entry: cacheEntry,
+                snapshotAgeMs: ageMs,
+                stale: false,
+                warming: false,
+            }
+        }
+
+        // Serve stale immediately and refresh in the background.
+        void triggerSnapshotRefresh()
+        return {
+            entry: cacheEntry,
+            snapshotAgeMs: ageMs,
+            stale: true,
+            warming: ageMs > SNAPSHOT_STALE_TTL_MS,
+        }
+    }
+
+    if (refreshPromise) {
+        return {
+            entry: null,
+            snapshotAgeMs: null,
+            stale: false,
+            warming: true,
+        }
+    }
+
+    try {
+        const warmedSnapshot = await withTimeout(
+            triggerSnapshotRefresh(),
+            INITIAL_SNAPSHOT_TIMEOUT_MS
+        )
+
+        return {
+            entry: warmedSnapshot,
+            snapshotAgeMs: getSnapshotAgeMs(warmedSnapshot),
+            stale: false,
+            warming: false,
+        }
+    } catch (error) {
+        console.warn('Market snapshot warm-up timed out or failed:', error)
+        return {
+            entry: null,
+            snapshotAgeMs: null,
+            stale: false,
+            warming: true,
+        }
+    }
 }
 
 export async function getPaginatedMarketList(
     query: MarketListQuery
 ): Promise<PaginatedListResponse<MarketListItem>> {
-    const snapshot = await getSnapshot()
+    const snapshotState = await getSnapshotState()
+
+    if (!snapshotState.entry) {
+        const nowIso = new Date().toISOString()
+        return {
+            items: [],
+            total: 0,
+            nextCursor: null,
+            hasMore: false,
+            snapshotAt: nowIso,
+            snapshotAgeMs: null,
+            stale: false,
+            warming: true,
+        }
+    }
 
     const limit = clampLimit(query.limit)
     const cursor = normalizeCursor(query.cursor)
     const sortBy = normalizeSortBy(query.sortBy)
     const sortDir = normalizeSortDir(query.sortDir)
 
-    const searched = applySearch(snapshot.items, query.q)
+    const searched = applySearch(snapshotState.entry.items, query.q)
     const sorted = applySort(searched, sortBy, sortDir)
 
     const pageItems = sorted.slice(cursor, cursor + limit)
@@ -320,6 +477,9 @@ export async function getPaginatedMarketList(
         total: sorted.length,
         nextCursor: nextOffset < sorted.length ? String(nextOffset) : null,
         hasMore: nextOffset < sorted.length,
-        snapshotAt: snapshot.snapshotAt,
+        snapshotAt: snapshotState.entry.snapshotAt,
+        snapshotAgeMs: snapshotState.snapshotAgeMs,
+        stale: snapshotState.stale,
+        warming: snapshotState.warming,
     }
 }

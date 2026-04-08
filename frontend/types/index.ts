@@ -147,12 +147,24 @@ export interface MarketListQuery {
     q?: string
 }
 
+export interface MarketSnapshotMeta {
+    snapshotAt: string
+    snapshotAgeMs: number | null
+    stale: boolean
+    warming: boolean
+}
+
+export type MarketListApiMeta = MarketSnapshotMeta
+
 export interface PaginatedListResponse<T> {
     items: T[]
     total: number
     nextCursor: string | null
     hasMore: boolean
     snapshotAt: string
+    snapshotAgeMs?: number | null
+    stale?: boolean
+    warming?: boolean
 }
 
 export interface UserWatchlist {
