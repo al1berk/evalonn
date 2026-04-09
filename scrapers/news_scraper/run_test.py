@@ -1,4 +1,4 @@
-import collect_markets_news as c
+import scrapers.news_scraper.collect_markets_news as c
 
 def test_main():
     print('Testing with 2 tickers...')
