@@ -45,11 +45,21 @@ const menuItems = [
   }
 ]
 
+function normalizeSearchTerm(value: string): string {
+  return value
+    .trim()
+    .toLocaleLowerCase('tr-TR')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ı/g, 'i')
+    .replace(/\s+/g, ' ')
+}
+
 // Pre-build search index
 const SEARCH_INDEX = BIST_AVAILABLE.map(ticker => ({
   ticker,
   name: TICKER_NAMES[ticker] || ticker,
-  searchStr: `${ticker} ${(TICKER_NAMES[ticker] || '').toLowerCase()}`,
+  searchStr: normalizeSearchTerm(`${ticker} ${TICKER_NAMES[ticker] || ''}`),
 }))
 
 function TickerSearch() {
@@ -61,10 +71,12 @@ function TickerSearch() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   const results = useMemo(() => {
-    if (!query.trim()) return []
-    const q = query.toLowerCase()
+    const q = normalizeSearchTerm(query)
+    if (!q) return []
+    const tokens = q.split(' ').filter(Boolean)
+
     return SEARCH_INDEX
-      .filter(item => item.searchStr.includes(q))
+      .filter(item => tokens.every(token => item.searchStr.includes(token)))
       .slice(0, 8)
   }, [query])
   const selectedResult = results[selectedIndex] || null
